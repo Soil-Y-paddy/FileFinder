@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace PathList {
+namespace FileFinder
+{
 	static class Program {
 		/// <summary>
 		/// アプリケーションのメイン エントリ ポイントです。

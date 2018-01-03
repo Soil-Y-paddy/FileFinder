@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Windows.Forms;
 
-namespace PathList
+namespace FileFinder
 {
 	#region 構造体
 	/// <summary>

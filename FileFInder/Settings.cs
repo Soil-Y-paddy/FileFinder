@@ -4,7 +4,8 @@ using System.IO;
 using System.Xml.Serialization;
 using XmlSerialCtrl;
 
-namespace PathList {
+namespace FileFinder
+{
 	public class Settings  : Serial{
 		#region 定数
 		public const string file ="filepath.xml"; 

@@ -1,5 +1,6 @@
 ﻿using ControlExtends;
-namespace PathList {
+namespace FileFinder
+{
 	partial class MainForm {
 		/// <summary>
 		/// 必要なデザイナー変数です。
@@ -316,7 +317,7 @@ namespace PathList {
 			// 
 			this.pWait.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.pWait.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
-			this.pWait.Image = global::PathList.Properties.Resources.diskA;
+			this.pWait.Image = global::FileFinder.Properties.Resources.diskA;
 			this.pWait.Location = new System.Drawing.Point(308, 91);
 			this.pWait.Margin = new System.Windows.Forms.Padding(4);
 			this.pWait.Name = "pWait";

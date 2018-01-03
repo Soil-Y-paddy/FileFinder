@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace PathList {
+namespace FileFinder
+{
 
 	public partial class msg :Form {
 

@@ -1,4 +1,5 @@
-﻿namespace PathList {
+﻿namespace FileFinder
+{
 	partial class msg {
 		/// <summary>
 		/// Required designer variable.

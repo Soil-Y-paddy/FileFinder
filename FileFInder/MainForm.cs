@@ -8,7 +8,8 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using win32;
 using ControlExtends;
-namespace PathList {
+namespace FileFinder
+{
 
 	public enum ProcState
 	{

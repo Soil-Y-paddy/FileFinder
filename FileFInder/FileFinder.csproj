@@ -7,8 +7,8 @@
     <ProjectGuid>{F52644DF-7C4E-4914-94CE-A02FDA745A34}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>PathList</RootNamespace>
-    <AssemblyName>PathList</AssemblyName>
+    <RootNamespace>FileFinder</RootNamespace>
+    <AssemblyName>FileFinder</AssemblyName>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
