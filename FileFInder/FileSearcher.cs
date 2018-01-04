@@ -105,30 +105,17 @@ namespace FileFinder
 		string m_strRoot;　// 検索のルートパス
 		int m_nType; // 0:ファイル名 / 1:フォルダ名 / 2:ファイル・フォルダ両方
 		bool m_bSub; // サブフォルダも検索する場合true
-		DoWorkEventArgs m_objDoWorkArg; // 別スレッドへの通知
 
-		List<FileInfo> m_lstResult; //検索結果ファイルリスト
-		List<DirInfo> m_lstFolder; // 検索結果フォルダリスト
+		List<FileInfo> m_lstResult = new List<FileInfo>(); //検索結果ファイルリスト
+		List<DirInfo> m_lstFolder = new List<DirInfo>(); // 検索結果フォルダリスト
 
 		#endregion
 
 		#region 外部イベント
 
-		public RunWorkerCompletedEventHandler RunWorkCompleted
-		{
-			set
-			{
-				m_bgwWk1.RunWorkerCompleted += value;
-			}
-		}
+		public event RunWorkerCompletedEventHandler RunWorkCompleted;
 
-		public ProgressChangedEventHandler Progress
-		{
-			set
-			{
-				m_bgwWk1.ProgressChanged += value;
-			}
-		}
+		public event ProgressChangedEventHandler Progress;
 
 		#endregion
 
@@ -193,12 +180,11 @@ namespace FileFinder
 				WorkerReportsProgress = true
 			};
 			m_bgwWk1.DoWork += Bgw_DoWork;
-			m_lstResult = new List<FileInfo>();
-			m_lstFolder = new List<DirInfo>();
-			//m_bgw.RunWorkerCompleted += bgw_RunWorkerCompleted;
-			//m_bgw.ProgressChanged += bgw_ProgressChanged;
-		}
+			m_bgwWk1.RunWorkerCompleted += Bgw_RunWorkerCompleted;
+			m_bgwWk1.ProgressChanged += Bgw_ProgressChanged;
 
+
+		}
 		/// <summary>
 		/// 実行
 		/// </summary>
@@ -225,10 +211,10 @@ namespace FileFinder
 		/// <summary>
 		/// フォルダを再帰的に探索していく
 		/// </summary>
-		/// <param name="o_strRootPath"></param>
+		/// <param name="p_strRootPath"></param>
 		/// <param name="p_lstFileInfos"></param>
 		/// <returns></returns>
-		private FileInfo[] GetList(string o_strRootPath, List<FileInfo> p_lstFileInfos = null)
+		private FileInfo[] GetList(string p_strRootPath, List<FileInfo> p_lstFileInfos = null)
 
 		{
 			bool bFind = false;
@@ -236,71 +222,78 @@ namespace FileFinder
 			{
 				p_lstFileInfos = new List<FileInfo>();
 			}
-			if (Cancel)
+			if (!Cancel)
 			{
-				m_objDoWorkArg.Cancel = true;
-				return p_lstFileInfos.ToArray();
+				// 検索中の情報を外部に伝える
+				NowPath = p_strRootPath;
+				//m_lstFolder.Add(root);
+				try
+				{
+					// ファイル検索
+					if (m_nType == 0 || m_nType == 2)
+					{
+
+						foreach (string strFilePath in Directory.GetFiles(p_strRootPath, m_strFilePattern))
+						{
+							bFind = true;
+							p_lstFileInfos.Add(new FileInfo(strFilePath, false));
+						}
+					}
+
+					// フォルダ検索
+					if (m_nType == 1 || m_nType == 2)
+					{
+						foreach (string strFolderPath in Directory.GetDirectories(p_strRootPath, m_strFilePattern))
+						{
+							p_lstFileInfos.Add(new FileInfo(strFolderPath, true));
+							m_lstFolder.Add(new DirInfo(strFolderPath, true));
+						}
+					}
+					if (bFind)
+					{
+						DirInfo info = new DirInfo(p_strRootPath, false);
+						if (!m_lstFolder.Contains(info))
+						{
+							m_lstFolder.Add(info);
+						}
+
+					}
+					if (m_bSub)
+					{
+						// サブフォルダを検索する
+						foreach (string strSubFolderPath in Directory.GetDirectories(p_strRootPath))
+						{
+							string dis = Path.Combine(p_strRootPath, strSubFolderPath);
+							GetList(dis, p_lstFileInfos);
+						}
+					}
+
+
+				}
+				catch (Exception ex)
+				{
+					ExceptionMsg += ex.Message + "\r\n";
+				}
+				m_bgwWk1.ReportProgress(p_lstFileInfos.Count);
 			}
-			// 検索中の情報を外部に伝える
-			NowPath = o_strRootPath;
-			//m_lstFolder.Add(root);
-			try
-			{
-				// ファイル検索
-				if (m_nType == 0 || m_nType == 2)
-				{
-					
-					foreach (string strFilePath in Directory.GetFiles(o_strRootPath, m_strFilePattern))
-					{
-						bFind = true;
-						p_lstFileInfos.Add( new FileInfo(strFilePath, false) );
-					}
-				}
-
-				// フォルダ検索
-				if (m_nType == 1 || m_nType == 2)
-				{
-					foreach(string strFolderPath in Directory.GetDirectories(o_strRootPath, m_strFilePattern))
-					{
-						p_lstFileInfos.Add( new FileInfo(strFolderPath, true));
-						m_lstFolder.Add(new DirInfo(strFolderPath, true));
-					}
-				}
-				if (bFind)
-				{
-					DirInfo info = new DirInfo(o_strRootPath, false);
-					if (!m_lstFolder.Contains(info))
-					{
-						m_lstFolder.Add(info);
-					}
-
-				}
-				if (m_bSub)
-				{
-					// サブフォルダを検索する
-					foreach (string strSubFolderPath in Directory.GetDirectories(o_strRootPath))
-					{
-						string dis = Path.Combine(o_strRootPath, strSubFolderPath);
-						GetList(dis, p_lstFileInfos);
-					}
-				}
-
-
-			}
-			catch (Exception ex)
-			{
-				ExceptionMsg += ex.Message + "\r\n";
-			}
-			m_bgwWk1.ReportProgress(p_lstFileInfos.Count);
 			return p_lstFileInfos.ToArray();
 		}
 
 
 
-		private void Bgw_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
+		private void Bgw_ProgressChanged(object sender, ProgressChangedEventArgs e)
+		{
+			Progress?.Invoke(this, e);
+		}
+
+		private void Bgw_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+		{
+			RunWorkCompleted?.Invoke(this, e);
+		}
+
+		private void Bgw_DoWork(object sender, DoWorkEventArgs e)
 
 		{
-			m_objDoWorkArg = e;
 			m_lstResult.AddRange(GetList(m_strRoot));// ファイル探索
 
 		}
