@@ -246,48 +246,41 @@ namespace FileFinder
 			//m_lstFolder.Add(root);
 			try
 			{
-				List<DirInfo> DirLstTemp = new List<DirInfo>();
-
-
 				// ファイル検索
 				if (m_nType == 0 || m_nType == 2)
 				{
-					string[] fi = Directory.GetFiles(o_strRootPath, m_strFilePattern);
-					FileInfo[] fs = new FileInfo[fi.Length];
-					for (int i = 0; i < fi.Length; i++)
+					
+					foreach (string strFilePath in Directory.GetFiles(o_strRootPath, m_strFilePattern))
 					{
-						fs[i] = new FileInfo(fi[i], false);
+						bFind = true;
+						p_lstFileInfos.Add( new FileInfo(strFilePath, false) );
 					}
-					bFind = (fi.Length > 0);
-					p_lstFileInfos.AddRange(fs);
 				}
 
 				// フォルダ検索
 				if (m_nType == 1 || m_nType == 2)
 				{
-					string[] di = Directory.GetDirectories(o_strRootPath, m_strFilePattern);
-					FileInfo[] fs = new FileInfo[di.Length];
-					for (int i = 0; i < di.Length; i++)
+					foreach(string strFolderPath in Directory.GetDirectories(o_strRootPath, m_strFilePattern))
 					{
-						fs[i] = new FileInfo(di[i], true);
-						DirLstTemp.Add(new DirInfo(di[i], true));
+						p_lstFileInfos.Add( new FileInfo(strFolderPath, true));
+						m_lstFolder.Add(new DirInfo(strFolderPath, true));
 					}
-					p_lstFileInfos.AddRange(fs);
-					m_lstFolder.AddRange(DirLstTemp);
 				}
 				if (bFind)
 				{
 					DirInfo info = new DirInfo(o_strRootPath, false);
-					m_lstFolder.Add(info);
+					if (!m_lstFolder.Contains(info))
+					{
+						m_lstFolder.Add(info);
+					}
 
 				}
 				if (m_bSub)
 				{
 					// サブフォルダを検索する
-					string[] dir = Directory.GetDirectories(o_strRootPath);
-					foreach (string di in dir)
+					foreach (string strSubFolderPath in Directory.GetDirectories(o_strRootPath))
 					{
-						string dis = Path.Combine(o_strRootPath, di);
+						string dis = Path.Combine(o_strRootPath, strSubFolderPath);
 						GetList(dis, p_lstFileInfos);
 					}
 				}
