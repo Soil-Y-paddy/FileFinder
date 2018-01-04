@@ -35,7 +35,7 @@ namespace FileFinder
 			this.folderBrowser = new System.Windows.Forms.FolderBrowserDialog();
 			this.lblResult = new System.Windows.Forms.Label();
 			this.label3 = new System.Windows.Forms.Label();
-			this.lstResultBox = new System.Windows.Forms.ListView();
+			this.lsvResultBox = new System.Windows.Forms.ListView();
 			this.columnName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
 			this.imgForList = new System.Windows.Forms.ImageList(this.components);
 			this.lblSort = new System.Windows.Forms.Label();
@@ -54,7 +54,7 @@ namespace FileFinder
 			this.imgRadioIco = new System.Windows.Forms.ImageList(this.components);
 			this.searching = new System.Windows.Forms.Label();
 			this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-			this.treeDir = new ControlExtends.TreeViewEx();
+			this.trvDir = new ControlExtends.TreeViewEx();
 			this.label4 = new System.Windows.Forms.Label();
 			this.btnClip = new System.Windows.Forms.Button();
 			this.listMenu.SuspendLayout();
@@ -74,7 +74,7 @@ namespace FileFinder
 			this.label1.TabIndex = 0;
 			this.label1.Text = "ルートパス：";
 			this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-			this.label1.MouseClick += new System.Windows.Forms.MouseEventHandler(this.pnl_MouseClick);
+			this.label1.MouseClick += new System.Windows.Forms.MouseEventHandler(this.Pnl_MouseClick);
 			// 
 			// label2
 			// 
@@ -85,7 +85,7 @@ namespace FileFinder
 			this.label2.TabIndex = 0;
 			this.label2.Text = "キーワード：";
 			this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-			this.label2.MouseClick += new System.Windows.Forms.MouseEventHandler(this.pnl_MouseClick);
+			this.label2.MouseClick += new System.Windows.Forms.MouseEventHandler(this.Pnl_MouseClick);
 			// 
 			// chkSubDir
 			// 
@@ -108,7 +108,7 @@ namespace FileFinder
 			this.btnSearch.TabIndex = 10;
 			this.btnSearch.Text = "検索";
 			this.btnSearch.UseVisualStyleBackColor = true;
-			this.btnSearch.Click += new System.EventHandler(this.btnSearch_Click);
+			this.btnSearch.Click += new System.EventHandler(this.BtnSearch_Click);
 			// 
 			// bntSNSY
 			// 
@@ -120,7 +120,7 @@ namespace FileFinder
 			this.bntSNSY.TabIndex = 2;
 			this.bntSNSY.Text = "参照...";
 			this.bntSNSY.UseVisualStyleBackColor = true;
-			this.bntSNSY.Click += new System.EventHandler(this.bntSNSY_Click);
+			this.bntSNSY.Click += new System.EventHandler(this.BtnSNSY_Click);
 			// 
 			// folderBrowser
 			// 
@@ -147,32 +147,32 @@ namespace FileFinder
 			this.label3.TabIndex = 0;
 			this.label3.Text = "検索対象：";
 			this.label3.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-			this.label3.MouseClick += new System.Windows.Forms.MouseEventHandler(this.pnl_MouseClick);
+			this.label3.MouseClick += new System.Windows.Forms.MouseEventHandler(this.Pnl_MouseClick);
 			// 
-			// lstResultBox
+			// lsvResultBox
 			// 
-			this.lstResultBox.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+			this.lsvResultBox.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnName});
-			this.lstResultBox.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.lstResultBox.FullRowSelect = true;
-			this.lstResultBox.GridLines = true;
-			this.lstResultBox.LargeImageList = this.imgForList;
-			this.lstResultBox.Location = new System.Drawing.Point(0, 0);
-			this.lstResultBox.Margin = new System.Windows.Forms.Padding(4);
-			this.lstResultBox.Name = "lstResultBox";
-			this.lstResultBox.Size = new System.Drawing.Size(238, 249);
-			this.lstResultBox.SmallImageList = this.imgForList;
-			this.lstResultBox.Sorting = System.Windows.Forms.SortOrder.Ascending;
-			this.lstResultBox.TabIndex = 12;
-			this.lstResultBox.UseCompatibleStateImageBehavior = false;
-			this.lstResultBox.View = System.Windows.Forms.View.Details;
-			this.lstResultBox.VirtualMode = true;
-			this.lstResultBox.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.list_ColumnClick);
-			this.lstResultBox.RetrieveVirtualItem += new System.Windows.Forms.RetrieveVirtualItemEventHandler(this.list_RetrieveVirtualItem);
-			this.lstResultBox.DoubleClick += new System.EventHandler(this.list_DoubleClick);
-			this.lstResultBox.MouseClick += new System.Windows.Forms.MouseEventHandler(this.list_MouseClick);
-			this.lstResultBox.MouseDown += new System.Windows.Forms.MouseEventHandler(this.list_MouseDown);
-			this.lstResultBox.Resize += new System.EventHandler(this.list_Resize);
+			this.lsvResultBox.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.lsvResultBox.FullRowSelect = true;
+			this.lsvResultBox.GridLines = true;
+			this.lsvResultBox.LargeImageList = this.imgForList;
+			this.lsvResultBox.Location = new System.Drawing.Point(0, 0);
+			this.lsvResultBox.Margin = new System.Windows.Forms.Padding(4);
+			this.lsvResultBox.Name = "lsvResultBox";
+			this.lsvResultBox.Size = new System.Drawing.Size(238, 249);
+			this.lsvResultBox.SmallImageList = this.imgForList;
+			this.lsvResultBox.Sorting = System.Windows.Forms.SortOrder.Ascending;
+			this.lsvResultBox.TabIndex = 12;
+			this.lsvResultBox.UseCompatibleStateImageBehavior = false;
+			this.lsvResultBox.View = System.Windows.Forms.View.Details;
+			this.lsvResultBox.VirtualMode = true;
+			this.lsvResultBox.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.LsvResult_ColumnClick);
+			this.lsvResultBox.RetrieveVirtualItem += new System.Windows.Forms.RetrieveVirtualItemEventHandler(this.LsvResult_RetrieveVirtualItem);
+			this.lsvResultBox.DoubleClick += new System.EventHandler(this.LsvResult_DoubleClick);
+			this.lsvResultBox.MouseClick += new System.Windows.Forms.MouseEventHandler(this.LsvResult_MouseClick);
+			this.lsvResultBox.MouseDown += new System.Windows.Forms.MouseEventHandler(this.LsvResult_MouseDown);
+			this.lsvResultBox.Resize += new System.EventHandler(this.LsResult_Resize);
 			// 
 			// columnName
 			// 
@@ -200,7 +200,7 @@ namespace FileFinder
 			this.lblSort.TabIndex = 11;
 			this.lblSort.Text = "(名前順)";
 			this.lblSort.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-			this.lblSort.Click += new System.EventHandler(this.lblSort_Click);
+			this.lblSort.Click += new System.EventHandler(this.LblSort_Click);
 			// 
 			// listMenu
 			// 
@@ -232,7 +232,7 @@ namespace FileFinder
 			this.MnuOpenFolder.Name = "MnuOpenFolder";
 			this.MnuOpenFolder.Size = new System.Drawing.Size(144, 24);
 			this.MnuOpenFolder.Text = "場所を開く";
-			this.MnuOpenFolder.Click += new System.EventHandler(this.toolStripMenuItem1_Click);
+			this.MnuOpenFolder.Click += new System.EventHandler(this.MnuOpenFolder_Click);
 			// 
 			// MnuFileProperty
 			// 
@@ -251,7 +251,7 @@ namespace FileFinder
 			this.btnExit.TabIndex = 13;
 			this.btnExit.Text = "終了";
 			this.btnExit.UseVisualStyleBackColor = true;
-			this.btnExit.Click += new System.EventHandler(this.btnExit_Click);
+			this.btnExit.Click += new System.EventHandler(this.BtnExit_Click);
 			// 
 			// pnl
 			// 
@@ -273,24 +273,25 @@ namespace FileFinder
 			this.pnl.Name = "pnl";
 			this.pnl.Size = new System.Drawing.Size(440, 124);
 			this.pnl.TabIndex = 12;
-			this.pnl.MouseClick += new System.Windows.Forms.MouseEventHandler(this.pnl_MouseClick);
+			this.pnl.MouseClick += new System.Windows.Forms.MouseEventHandler(this.Pnl_MouseClick);
 			// 
 			// cmbKey
 			// 
 			this.cmbKey.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.cmbKey.FIllBoxEnable = false;
 			this.cmbKey.ButtoBackColor = System.Drawing.SystemColors.Control;
 			this.cmbKey.ButtonSize = 23;
 			this.cmbKey.ComboBackColor = System.Drawing.SystemColors.Window;
 			this.cmbKey.ComboForeColor = System.Drawing.SystemColors.WindowText;
 			this.cmbKey.ComboText = "";
+			this.cmbKey.FIllBoxEnable = false;
+			this.cmbKey.FillBoxHeight = 50;
 			this.cmbKey.Items = new string[] {
         ""};
 			this.cmbKey.Location = new System.Drawing.Point(97, 66);
 			this.cmbKey.MinimumSize = new System.Drawing.Size(0, 23);
-			this.cmbKey.FillBoxHeight = 50;
 			this.cmbKey.Name = "cmbKey";
+			this.cmbKey.SelectedIndex = 0;
 			this.cmbKey.Size = new System.Drawing.Size(264, 23);
 			this.cmbKey.TabIndex = 16;
 			// 
@@ -298,18 +299,19 @@ namespace FileFinder
 			// 
 			this.cmbRoot.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.cmbRoot.FIllBoxEnable = true;
 			this.cmbRoot.ButtoBackColor = System.Drawing.SystemColors.Control;
 			this.cmbRoot.ButtonSize = 23;
 			this.cmbRoot.ComboBackColor = System.Drawing.SystemColors.Window;
 			this.cmbRoot.ComboForeColor = System.Drawing.SystemColors.WindowText;
 			this.cmbRoot.ComboText = "";
+			this.cmbRoot.FIllBoxEnable = true;
+			this.cmbRoot.FillBoxHeight = 50;
 			this.cmbRoot.Items = new string[] {
         ""};
 			this.cmbRoot.Location = new System.Drawing.Point(97, 8);
 			this.cmbRoot.MinimumSize = new System.Drawing.Size(0, 23);
-			this.cmbRoot.FillBoxHeight = 50;
 			this.cmbRoot.Name = "cmbRoot";
+			this.cmbRoot.SelectedIndex = 0;
 			this.cmbRoot.Size = new System.Drawing.Size(264, 23);
 			this.cmbRoot.TabIndex = 15;
 			// 
@@ -338,7 +340,7 @@ namespace FileFinder
 			this.btnError.Text = "エラー";
 			this.btnError.UseVisualStyleBackColor = true;
 			this.btnError.Visible = false;
-			this.btnError.Click += new System.EventHandler(this.btnError_Click);
+			this.btnError.Click += new System.EventHandler(this.BtnError_Click);
 			// 
 			// rdoSearch
 			// 
@@ -349,7 +351,7 @@ namespace FileFinder
 			this.rdoSearch.SelectedIndex = 0;
 			this.rdoSearch.Size = new System.Drawing.Size(155, 26);
 			this.rdoSearch.TabIndex = 17;
-			this.rdoSearch.CheckedChanged += new System.EventHandler(this.rdoSel_SelectedChanged);
+			this.rdoSearch.CheckedChanged += new System.EventHandler(this.RdoSel_SelectedChanged);
 			// 
 			// imgRadioIco
 			// 
@@ -379,28 +381,28 @@ namespace FileFinder
 			// 
 			// splitContainer1.Panel1
 			// 
-			this.splitContainer1.Panel1.Controls.Add(this.treeDir);
+			this.splitContainer1.Panel1.Controls.Add(this.trvDir);
 			this.splitContainer1.Panel1.Controls.Add(this.label4);
 			// 
 			// splitContainer1.Panel2
 			// 
 			this.splitContainer1.Panel2.Controls.Add(this.lblSort);
-			this.splitContainer1.Panel2.Controls.Add(this.lstResultBox);
+			this.splitContainer1.Panel2.Controls.Add(this.lsvResultBox);
 			this.splitContainer1.Size = new System.Drawing.Size(442, 249);
 			this.splitContainer1.SplitterDistance = 200;
 			this.splitContainer1.TabIndex = 15;
 			// 
 			// treeDir
 			// 
-			this.treeDir.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.treeDir.ImageIndex = 0;
-			this.treeDir.ImageList = this.imgForList;
-			this.treeDir.Location = new System.Drawing.Point(0, 0);
-			this.treeDir.Name = "treeDir";
-			this.treeDir.SelectedImageIndex = 0;
-			this.treeDir.Size = new System.Drawing.Size(200, 249);
-			this.treeDir.TabIndex = 0;
-			this.treeDir.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.treeDir_AfterSelect);
+			this.trvDir.Dock = System.Windows.Forms.DockStyle.Fill;
+			this.trvDir.ImageIndex = 0;
+			this.trvDir.ImageList = this.imgForList;
+			this.trvDir.Location = new System.Drawing.Point(0, 0);
+			this.trvDir.Name = "treeDir";
+			this.trvDir.SelectedImageIndex = 0;
+			this.trvDir.Size = new System.Drawing.Size(200, 249);
+			this.trvDir.TabIndex = 0;
+			this.trvDir.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.TrvDir_AfterSelect);
 			// 
 			// label4
 			// 
@@ -422,7 +424,7 @@ namespace FileFinder
 			this.btnClip.Size = new System.Drawing.Size(29, 29);
 			this.btnClip.TabIndex = 11;
 			this.btnClip.UseVisualStyleBackColor = true;
-			this.btnClip.Click += new System.EventHandler(this.clip_Click);
+			this.btnClip.Click += new System.EventHandler(this.BtnClip_Click);
 			// 
 			// MainForm
 			// 
@@ -443,7 +445,7 @@ namespace FileFinder
 			this.Text = "ファイルファインダ";
 			this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
 			this.Load += new System.EventHandler(this.MainForm_Load);
-			this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.pnl_MouseClick);
+			this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.Pnl_MouseClick);
 			this.listMenu.ResumeLayout(false);
 			this.pnl.ResumeLayout(false);
 			this.pnl.PerformLayout();
@@ -469,7 +471,7 @@ namespace FileFinder
 		private System.Windows.Forms.Button btnClip;
 		private System.Windows.Forms.Label lblResult;
 		private System.Windows.Forms.Label label3;
-		private System.Windows.Forms.ListView lstResultBox;
+		private System.Windows.Forms.ListView lsvResultBox;
 		private System.Windows.Forms.ColumnHeader columnName;
 		private System.Windows.Forms.ImageList imgForList;
 		private System.Windows.Forms.Label lblSort;
@@ -484,7 +486,7 @@ namespace FileFinder
 		private System.Windows.Forms.Label searching;
 		private System.Windows.Forms.Button btnError;
 		private System.Windows.Forms.SplitContainer splitContainer1;
-		private ControlExtends.TreeViewEx treeDir;
+		private ControlExtends.TreeViewEx trvDir;
 		private ControlExtends.ComboHistoryAndFill cmbRoot;
 		private ControlExtends.ComboHistoryAndFill cmbKey;
 		private System.Windows.Forms.ImageList imgRadioIco;
