@@ -103,6 +103,7 @@ namespace FileFinder
 			m_objSetting.m_nSel = rdoSearch.SelectedIndex;
 			m_objSetting.m_stWindowRect.Size = Size;
 			m_objSetting.m_stWindowRect.Location = Location;
+			m_objSetting.m_bSubDir = chkSubDir.Checked;
 			m_objSetting.m_nSplitDistance = splitContainer1.SplitterDistance;
 			m_objSetting.save();
 		}
