@@ -47,7 +47,7 @@ namespace FileFinder
 			rdoSearch.Images = imgRadioIco;
 
 			// 設定情報を読み込む
-			m_objSetting = Settings.load();
+			m_objSetting = Settings.Load();
 
 
 			// リストのカラム幅をリセット(リストの幅に合わせる)
@@ -76,7 +76,6 @@ namespace FileFinder
 
 		#region 設定のセーブ・ロード
 
-
 		/// <summary>
 		/// xmlに保存された設定をフォームに展開する
 		/// </summary>
@@ -92,7 +91,6 @@ namespace FileFinder
 
 		}
 
-
 		/// <summary>
 		/// xmlに設定を保存する
 		/// </summary>
@@ -105,12 +103,12 @@ namespace FileFinder
 			m_objSetting.m_stWindowRect.Location = Location;
 			m_objSetting.m_bSubDir = chkSubDir.Checked;
 			m_objSetting.m_nSplitDistance = splitContainer1.SplitterDistance;
-			m_objSetting.save();
+			m_objSetting.Save();
 		}
 
 		#endregion
 
-		#region フォルダブラウザダイアログ
+		#region フォルダブラウザダイアログとクリップボード
 
 
 		/// <summary>
@@ -136,11 +134,47 @@ namespace FileFinder
 
 		}
 
+		/// <summary>
+		/// 検索結果をクリップボードにコピーする
+		/// </summary>
+		private void GetClipboard()
+		{
+
+			if (m_objFS.FileResult.Count == 0)
+			{
+				MessageBox.Show("検索結果が0件です。");
+				return;
+			}
+			string[] sts = new string[m_objFS.FileResult.Count];
+			for (int i = 0; i < sts.Length; i++)
+			{
+				sts[i] = m_objFS.FileResult[i].ToString();
+			}
+			Clipboard.SetText(string.Join("\r\n", sts));
+			MessageBox.Show("クリップボードにコピーしました。");
+		}
+
+		/// <summary>
+		/// ソート処理
+		/// </summary>
+		private void SortProc( ) {
+			//if(m_res.Count == 0) return;
+			lblSort.Text = "(" + m_arySortType[m_nSort] + ")";
+
+			FileInfoSorter sorter = new FileInfoSorter(m_nSort);
+			m_lstSelPathList.Sort(sorter);
+			m_objFS.FileResult.Sort(sorter);
+
+			m_nSort = (m_nSort + 1) % m_nSortMax;
+
+			// リストを再描画
+			lsvResultBox.Refresh();
+		}
+
+
 		#endregion
 
 		#region 主処理
-
-
 
 		/// <summary>
 		/// 検索の主実行
@@ -166,11 +200,6 @@ namespace FileFinder
 				cmbKey.ComboText = "*";
 			}
 
-			m_objFS.FileResult.Clear();
-			lsvResultBox.VirtualListSize = 0;
-			trvDir.Nodes.Clear();
-			this.Refresh();
-
 			// ルートパスが不正なとき
 			if(!Directory.Exists(cmbRoot.ComboText)) {
 				MessageBox.Show("ルートパスが見つかりません。\n正しく入力してください。",this.Text,
@@ -184,6 +213,12 @@ namespace FileFinder
 
 			if (bRetVal)
 			{
+
+				m_objFS.FileResult.Clear();
+				lsvResultBox.VirtualListSize = 0;
+				trvDir.Nodes.Clear();
+				this.Refresh();
+
 				// 実行
 				m_objFS.Execute(cmbRoot.ComboText, cmbKey.ComboText, rdoSearch.SelectedIndex, chkSubDir.Checked);
 				pWait.Visible = true;
@@ -197,46 +232,8 @@ namespace FileFinder
 
 		#endregion
 
-		#region クリップボード
-
-
-		/// <summary>
-		/// 検索結果をクリップボードにコピーする
-		/// </summary>
-		private void GetClipboard() {
-
-			if(m_objFS.FileResult.Count == 0) {
-				MessageBox.Show("検索結果が0件です。");
-				return;
-			}
-			string[] sts = new string[m_objFS.FileResult.Count];
-			for(int i = 0; i < sts.Length; i++)
-			{
-				sts[i] = m_objFS.FileResult[i].ToString();
-			}
-			Clipboard.SetText(string.Join("\r\n",sts));
-			MessageBox.Show("クリップボードにコピーしました。");
-		}
-
-		#endregion
-
 		#region リストのソート
 
-		/// <summary>
-		/// ソート処理
-		/// </summary>
-		private void SortProc( ) {
-			//if(m_res.Count == 0) return;
-			lblSort.Text = "(" + m_arySortType[m_nSort] + ")";
-
-			FileInfoSorter sorter = new FileInfoSorter(m_nSort);
-			m_lstSelPathList.Sort(sorter);
-
-			m_nSort = (m_nSort + 1) % m_nSortMax;
-
-			// リストを再描画
-			lsvResultBox.Refresh();
-		}
 
 		#endregion
 
@@ -329,7 +326,7 @@ namespace FileFinder
 		/// <param name="e"></param>
 		private void BtnError_Click(object sender,EventArgs e) {
 
-			msg msg = new msg()
+			DlgMsg msg = new DlgMsg()
 			{
 				StartPosition = FormStartPosition.CenterParent,
 				Message = m_objFS.ExceptionMsg
@@ -512,7 +509,7 @@ namespace FileFinder
 		/// <param name="e"></param>
 		private void MnuFileProperty_Click(object sender,EventArgs e) {
 			string path = m_lstSelPathList[lsvResultBox.SelectedIndices[0]].ToString();
-			win32Api.SHObjectProperties(IntPtr.Zero, win32Api.SHOP_FILEPATH, path, string.Empty);
+			Win32Api.SHObjectProperties(IntPtr.Zero, Win32Api.SHOP_FILEPATH, path, string.Empty);
 		}
 
 
@@ -531,8 +528,8 @@ namespace FileFinder
 		#endregion
 
 		#region ツリービュー
-		//フォルダツリーが選択された時
 
+		//フォルダツリーが選択された時
 		private void TrvDir_AfterSelect(object sender, TreeViewEventArgs e)
 
 		{
@@ -576,7 +573,22 @@ namespace FileFinder
 
 		#region 実行結果と実行中の表示処理
 
+		// ファイル検索の進捗
+		private void Bgw_ProgressChanged(object sender,System.ComponentModel.ProgressChangedEventArgs e) {
 
+			
+			string[] temp = m_objFS.NowPath.Split("\\".ToCharArray());
+			int len=m_objFS.NowPath.Length;
+			for(int i = 0; i < temp.Length-1; i++) {
+				len -=(temp[i].Length - 2);
+				temp[i] = "..";
+				if(len < 50) return;
+			}
+			searching.Text = string.Join("\\",temp); //Path.GetFileName(m_FS.nowPath);	
+			lblResult.Text=string.Format("検索中... {0}件",e.ProgressPercentage);
+		}
+
+		// ファイル検索完了後処理
 		private void Bgw_RunWorkerCompleted(object sender,System.ComponentModel.RunWorkerCompletedEventArgs e) {
 
 			string strCancelMsg = "結果";
@@ -661,27 +673,13 @@ namespace FileFinder
 
 		}
 
-
-		private void Bgw_ProgressChanged(object sender,System.ComponentModel.ProgressChangedEventArgs e) {
-
-			
-			string[] temp = m_objFS.NowPath.Split("\\".ToCharArray());
-			int len=m_objFS.NowPath.Length;
-			for(int i = 0; i < temp.Length-1; i++) {
-				len -=(temp[i].Length - 2);
-				temp[i] = "..";
-				if(len < 50) return;
-			}
-			searching.Text = string.Join("\\",temp); //Path.GetFileName(m_FS.nowPath);	
-			lblResult.Text=string.Format("検索中... {0}件",e.ProgressPercentage);
-		}
-
-
+		// ツリービューノード追加進捗
 		private void TrvDir_AddRangeProgress(object sender, ProgressChangedEventArgs e)
 		{
 			prgTreeCreate.Value = e.ProgressPercentage;
 		}
 
+		// ツリービューノード追加完了後処理
 		private void TrvDir_AddNodeRangeComplete(object sender, RunWorkerCompletedEventArgs e)
 		{
 			if (trvDir.Nodes.Count > 0)

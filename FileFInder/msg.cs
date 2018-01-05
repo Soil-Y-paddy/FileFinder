@@ -4,27 +4,27 @@ using System.Windows.Forms;
 namespace FileFinder
 {
 
-	public partial class msg :Form {
+	public partial class DlgMsg :Form {
 
 		public string Message;
 
-		public msg( ) {
+		public DlgMsg( ) {
 			InitializeComponent();
 			Message = "";
 		}
 
 
-		private void button1_Click(object sender,EventArgs e) {
+		private void BtnClose_Click(object sender,EventArgs e) {
 
 			Close();
 		}
 
 
-		private void msg_Load(object sender,EventArgs e) {
+		private void DlgMsg_Load(object sender,EventArgs e) {
 
-			textBox1.Text = Message;
-			textBox1.Select(textBox1.Text.Length,0);
-			this.ActiveControl = button1;
+			txtMessage.Text = Message;
+			txtMessage.Select(txtMessage.Text.Length,0);
+			this.ActiveControl = btnClose;
 		}
 	}
 }

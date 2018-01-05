@@ -100,6 +100,7 @@ namespace FileFinder
 	{
 
 		#region メンバ変数
+
 		BackgroundWorker m_bgwWk1;// 別スレッドでファイル検索
 		string m_strFilePattern; // 検索条件
 		string m_strRoot;　// 検索のルートパス
@@ -125,28 +126,17 @@ namespace FileFinder
 		/// <summary>
 		/// 実行中に例外が発生した時、そのメッセージ
 		/// </summary>
-		public string ExceptionMsg
-
-
-		{
-			get; set;
-		}
+		public string ExceptionMsg{get; set;}
 
 		/// <summary>
 		/// キャンセル通知
 		/// </summary>
-		public bool Cancel
-		{
-			get; set;
-		}
+		public bool Cancel{get; set;}
 
 		/// <summary>
 		/// 現在探索中のパスを取得する
 		/// </summary>
-		public string NowPath
-		{
-			get; set;
-		}
+		public string NowPath{get; set;}
 
 		/// <summary>
 		/// 検索結果のファイルリスト
@@ -172,6 +162,8 @@ namespace FileFinder
 
 		#endregion
 
+		#region コンストラクタ
+
 		public FileSearcher()
 		{
 			m_bgwWk1 = new BackgroundWorker()
@@ -183,8 +175,12 @@ namespace FileFinder
 			m_bgwWk1.RunWorkerCompleted += Bgw_RunWorkerCompleted;
 			m_bgwWk1.ProgressChanged += Bgw_ProgressChanged;
 
-
 		}
+
+		#endregion
+
+
+		#region メソッド
 		/// <summary>
 		/// 実行
 		/// </summary>
@@ -279,7 +275,9 @@ namespace FileFinder
 			return p_lstFileInfos.ToArray();
 		}
 
+		#endregion
 
+		#region 非同期イベント
 
 		private void Bgw_ProgressChanged(object sender, ProgressChangedEventArgs e)
 		{
@@ -297,6 +295,8 @@ namespace FileFinder
 			m_lstResult.AddRange(GetList(m_strRoot));// ファイル探索
 
 		}
+
+		#endregion
 	}
 
 

@@ -20,7 +20,7 @@ namespace ControlExtends
 
 		#region メンバー変数
 		//フィル領域は親に配置する
-		private bool FillLock { get; set; }
+		private bool m_bFillLock;
 		private int m_nButtonSize = 23;
 		private bool m_bFillBoxEn = true;
 		#endregion
@@ -252,7 +252,7 @@ namespace ControlExtends
 		#region フィルボックスイベント
 
 
-		private void fill_Click(object sender, EventArgs e)
+		private void Fill_Click(object sender, EventArgs e)
 
 		{
 			try
@@ -271,13 +271,13 @@ namespace ControlExtends
 
 		#region 削除ボタンイベント
 
-		private void btn1_Clip(object sender, EventArgs e)
+		private void Btn1_Clip(object sender, EventArgs e)
 
 		{
 			RemveList();
-			FillLock = true;
+			m_bFillLock = true;
 			cmb1.SelectedIndex = cmb1.Items.Count - 1;
-			FillLock = false;
+			m_bFillLock = false;
 
 		}
 		#endregion
@@ -285,7 +285,7 @@ namespace ControlExtends
 		#region コンボボックスイベント
 
 
-		private void cmb1_DropDown(object sender, EventArgs e)
+		private void Cmb1_DropDown(object sender, EventArgs e)
 
 		{
 			mlstFillBox.Visible = false;
@@ -296,12 +296,12 @@ namespace ControlExtends
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
-		private void cmb1_SelectedIndexChanged(object sender, EventArgs e)
+		private void Cmb1_SelectedIndexChanged(object sender, EventArgs e)
 
 		{
 			
 			//if (mlstFillBox.Visible) return;
-			FillLock = false;
+			m_bFillLock = false;
 			mlstFillBox.Visible = false;
 			if (cmb1.SelectedIndex == 0)
 			{
@@ -315,13 +315,13 @@ namespace ControlExtends
 		}
 
 
-		private void cmb1_TextChanged(object sender, EventArgs e)
+		private void Cmb1_TextChanged(object sender, EventArgs e)
 
 		{
 			if (FIllBoxEnable)
 			{
 				// ロックがかかってる時は、実行しない
-				if (FillLock) return;
+				if (m_bFillLock) return;
 				// オートフィルの候補配列を取得
 				string[] aryFillList = GetAutoFillList(cmb1.Text);
 				if (aryFillList.Length > 0)
@@ -353,7 +353,7 @@ namespace ControlExtends
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
-		private void cmb1_KeyDown(object sender, KeyEventArgs e)
+		private void Cmb1_KeyDown(object sender, KeyEventArgs e)
 
 		{
 			if (FIllBoxEnable && mlstFillBox.Visible && !cmb1.DroppedDown)
@@ -361,7 +361,7 @@ namespace ControlExtends
 				switch (e.KeyCode)
 				{
 					case Keys.Down:
-						if (!setFillText(+1))
+						if (!SetFillText(+1))
 						{
 							mlstFillBox.Visible = false;
 							cmb1.DroppedDown = true;
@@ -369,7 +369,7 @@ namespace ControlExtends
 						e.Handled = true;
 						break;
 					case Keys.Up:
-						if (setFillText(-1))
+						if (SetFillText(-1))
 						{
 							mlstFillBox.Visible = false;
 							cmb1.DroppedDown = true;
@@ -389,7 +389,7 @@ namespace ControlExtends
 		}
 
 
-		private void cmb1_KeyPress(object sender, KeyPressEventArgs e)
+		private void Cmb1_KeyPress(object sender, KeyPressEventArgs e)
 
 		{
 			// コンボボックスにEnterが入力されたら、確定させる
@@ -429,12 +429,12 @@ namespace ControlExtends
 			// 空文字でなく、未だ含まれていない時
 			if ((cmb1.Text != "") && !cmb1.Items.Contains(cmb1.Text))
 			{
-				FillLock = true;
+				m_bFillLock = true;
 				// 追加する
 				cmb1.Items.Add(cmb1.Text);
 
 				cmb1.SelectedIndex = cmb1.Items.Count - 1;
-				FillLock = false;
+				m_bFillLock = false;
 			}
 
 		}
@@ -503,7 +503,7 @@ namespace ControlExtends
 		/// <summary>
 		/// オートフィルのフィルの内容をセットする
 		/// </summary>
-		private bool setFillText(int inc)
+		private bool SetFillText(int inc)
 
 		{
 			if (mlstFillBox.Items.Count == 0) return false;
@@ -511,11 +511,11 @@ namespace ControlExtends
 			   mlstFillBox.SelectedIndex + inc < 0) return false;
 			mlstFillBox.SelectedIndex += inc;
 
-			FillLock = true;
+			m_bFillLock = true;
 			string st = mlstFillBox.SelectedItem.ToString();
 			cmb1.Text = st;
 			cmb1.Select(st.Length, 0);
-			FillLock = false;
+			m_bFillLock = false;
 			return true;
 		}
 
@@ -527,7 +527,7 @@ namespace ControlExtends
 	/// </summary>
 	public struct ComboHistoryData
 	{
-		#region "メンバー変数"
+		#region メンバー変数
 		/// <summary>
 		/// 選択中の履歴
 		/// </summary>
@@ -541,7 +541,7 @@ namespace ControlExtends
 		public string[] m_aryItems;
 		#endregion
 
-		#region "コンストラクタ"
+		#region コンストラクタ
 		public ComboHistoryData(int p_nSel = 0)
 		{
 			m_nSelId = 0;

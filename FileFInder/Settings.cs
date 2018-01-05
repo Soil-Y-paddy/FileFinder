@@ -40,16 +40,16 @@ namespace FileFinder
 		}
 
 
-		public void save()
+		public void Save()
 
 		{
-			save(file);
+			Save(file);
 		}
 
-		public static Settings load()
+		public static Settings Load()
 
 		{
-			return load<Settings>(file);
+			return Load<Settings>(file);
 		}
 	}
 

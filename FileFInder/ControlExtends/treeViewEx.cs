@@ -5,12 +5,23 @@ using System.Drawing;
 namespace ControlExtends
 {
 
+	/// <summary>
+	/// ツリーノード要素
+	/// </summary>
 	public struct TreeNodeElements
 	{
 		public string strPath;
 		public int nImageIndex;
 		public int nSelectIndex;
 		public Color stForeColor;
+
+		/// <summary>
+		/// コンストラクタ
+		/// </summary>
+		/// <param name="p_strPath">ツリーノードのフルパス</param>
+		/// <param name="p_nImageIndex"></param>
+		/// <param name="p_nSelectIndex"></param>
+		/// <param name="p_stForeColor"></param>
 		public TreeNodeElements(string p_strPath, int p_nImageIndex, int p_nSelectIndex, Color p_stForeColor)
 		{
 			strPath = p_strPath;
@@ -26,10 +37,40 @@ namespace ControlExtends
 	class TreeViewEx : TreeView
 	{
 
+		#region	メンバー変数
 
 		BackgroundWorker worker;
 		TreeNodeElements[] m_aryElements;
 		TreeViewEx subThreadView;
+
+		#endregion
+
+		#region 外部イベント
+
+		public event RunWorkerCompletedEventHandler AddNodeRangeComplete;
+		public event ProgressChangedEventHandler AddRangeProgress;
+
+		#endregion
+
+		#region コンストラクタ
+
+		public TreeViewEx()
+		{}
+
+		private TreeViewEx(TreeViewEx p_objParent)
+		{
+			PathSeparator = p_objParent.PathSeparator;
+		}
+
+		#endregion
+
+		#region メソッド
+
+		/// <summary>
+		/// ツリーノードを再帰的に追加します。
+		/// 　※非同期処理です。
+		/// </summary>
+		/// <param name="p_aryElements">ツリーノード要素の配列</param>
 		public void AddNodeRange(TreeNodeElements[] p_aryElements)
 		{
 			worker = new BackgroundWorker()
@@ -44,40 +85,6 @@ namespace ControlExtends
 			SuspendLayout();
 			worker.RunWorkerAsync();
 		}
-
-		private void Worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-		{
-			TreeNode[] ctl = new TreeNode[subThreadView.Nodes.Count];
-			subThreadView.Nodes.CopyTo(ctl, 0);
-			subThreadView.Nodes.Clear();
-
-			Nodes.AddRange(ctl);
-			Visible = true;
-			ResumeLayout();
-			AddNodeRangeComplete?.Invoke(this, e);
-		}
-
-		private void Worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
-		{
-			AddRangeProgress?.Invoke(this, e);
-		}
-
-		private void Worker_DoWork(object sender, DoWorkEventArgs e)
-		{
-			subThreadView = new TreeViewEx();
-			for (int nCnt = 0; nCnt<m_aryElements.Length; nCnt++)
-			{
-				TreeNodeElements stElement = m_aryElements[nCnt];
-				TreeNode node = subThreadView.AddNode(stElement.strPath, stElement.nImageIndex, stElement.nSelectIndex);
-				node.ForeColor = stElement.stForeColor;
-				worker.ReportProgress(nCnt);
-			}
-		}
-
-		public event RunWorkerCompletedEventHandler AddNodeRangeComplete;
-		public event ProgressChangedEventHandler AddRangeProgress;
-
-
 
 		/// <summary>
 		/// フルパスで指定されたツリービューを追加する
@@ -158,6 +165,46 @@ namespace ControlExtends
 			return objNode;
 
 		}
+
+
+		#endregion
+
+		#region	非同期イベント
+
+		private void Worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+		{
+			TreeNode[] ctl = new TreeNode[subThreadView.Nodes.Count];
+			subThreadView.Nodes.CopyTo(ctl, 0);
+			subThreadView.Nodes.Clear();
+
+			Nodes.AddRange(ctl);
+			Visible = true;
+			ResumeLayout();
+			AddNodeRangeComplete?.Invoke(this, e);
+		}
+
+		private void Worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+		{
+			AddRangeProgress?.Invoke(this, e);
+		}
+
+		private void Worker_DoWork(object sender, DoWorkEventArgs e)
+		{
+			subThreadView = new TreeViewEx(this);
+			for (int nCnt = 0; nCnt<m_aryElements.Length; nCnt++)
+			{
+				TreeNodeElements stElement = m_aryElements[nCnt];
+				TreeNode node = subThreadView.AddNode(stElement.strPath, stElement.nImageIndex, stElement.nSelectIndex);
+				node.ForeColor = stElement.stForeColor;
+				worker.ReportProgress(nCnt);
+			}
+		}
+
+		#endregion
+
+
+
+
 
 
 

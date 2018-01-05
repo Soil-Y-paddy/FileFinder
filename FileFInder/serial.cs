@@ -12,7 +12,7 @@ namespace XmlSerialCtrl
 	public class Serial
 	{
 
-		public void save(string file)
+		public void Save(string file)
 
 		{
 			//XmlSerializerオブジェクトを作成
@@ -22,9 +22,11 @@ namespace XmlSerialCtrl
 			ns.Add(string.Empty, string.Empty);
 
 			// XML書込み設定
-			XmlWriterSettings setting = new XmlWriterSettings();
-			setting.Indent = true;
-			setting.IndentChars = "\t";
+			XmlWriterSettings setting = new XmlWriterSettings()
+			{
+				Indent = true,
+				IndentChars = "\t"
+			};
 			//setting.NewLineOnAttributes = true;
 			using (XmlWriter writer = XmlWriter.Create(file, setting))
 			{
@@ -33,7 +35,7 @@ namespace XmlSerialCtrl
 			}
 		}
 
-		public static T load<T>(string file) where T : new()
+		public static T Load<T>(string file) where T : new()
 
 		{
 
@@ -91,7 +93,7 @@ namespace XmlSerialCtrl
 				while (reader.NodeType != XmlNodeType.EndElement)
 				{
 
-					Type type = checkElementType(reader.Name);
+					Type type = CheckElementType(reader.Name);
 					if (type == null)// 型判定NGの場合、次のタグに進む
 					{
 						reader.ReadStartElement();
@@ -141,7 +143,7 @@ namespace XmlSerialCtrl
 				}
 				else
 				{
-					Type t = checkWriteType(item);
+					Type t = CheckWriteType(item);
 					xs = new XmlSerializer(t);
 
 
@@ -152,7 +154,7 @@ namespace XmlSerialCtrl
 		}
 
 
-		private Type checkWriteType(object item)
+		private Type CheckWriteType(object item)
 
 		{
 			Type retVal = typeof(T);
@@ -163,7 +165,7 @@ namespace XmlSerialCtrl
 
 		// タグ名が存在するクラス名かどうか判定し、適合する場合、型を返す
 
-		private Type checkElementType(string tagName)
+		private Type CheckElementType(string tagName)
 
 		{
 			if (SerializeToStr) return typeof(string);

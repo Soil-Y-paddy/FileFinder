@@ -6,7 +6,7 @@ using System.Text;
 namespace win32
 {
 
-	class win32Api
+	class Win32Api
 
 	{
 		#region DLLの定義

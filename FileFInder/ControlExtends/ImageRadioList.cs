@@ -32,7 +32,7 @@ namespace ControlExtends
 			set
 			{
 				Clear();
-				m_lstImages = (value != null) ? value : m_lstImages;
+				m_lstImages = value ?? m_lstImages; // m_lstImages = (velue != Null) ? value : m_lstImages
 				foreach (Image img in m_lstImages.Images)
 				{
 					Add(img);
@@ -105,18 +105,20 @@ namespace ControlExtends
 		/// <param name="p_imgFig"></param>
 		public void Add(Image p_imgFig)
 		{
-			RadioButton objRadio = new RadioButton();
-			objRadio.Image = p_imgFig;
-			objRadio.AutoSize = false;
-			objRadio.Appearance = Appearance.Button;
-			objRadio.Margin =new Padding(3);
-			objRadio.Padding = new Padding(0);
-			objRadio.Size = new Size( p_imgFig.Size.Width + 3, p_imgFig.Size.Height + 3);
+			RadioButton objRadio = new RadioButton()
+			{
+				Image = p_imgFig,
+				AutoSize = false,
+				Appearance = Appearance.Button,
+				Margin = new Padding(3),
+				Padding = new Padding(0),
+				Size = new Size(p_imgFig.Size.Width + 3, p_imgFig.Size.Height + 3),
 
-			objRadio.Text = "";
-			objRadio.Tag = Controls.Count;
-			objRadio.FlatStyle = FlatStyle.Flat;
-			objRadio.CheckedChanged += rdioCheckedChanged;
+				Text = "",
+				Tag = Controls.Count,
+				FlatStyle = FlatStyle.Flat
+			};
+			objRadio.CheckedChanged += RdioCheckedChanged;
 			Controls.Add(objRadio);
 		}
 
@@ -142,7 +144,7 @@ namespace ControlExtends
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
-		private void rdioCheckedChanged(object sender, EventArgs e)
+		private void RdioCheckedChanged(object sender, EventArgs e)
 
 		{
 			if (m_oRdoOldSel != null)

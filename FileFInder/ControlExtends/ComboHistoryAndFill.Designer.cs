@@ -41,11 +41,11 @@
 			this.cmb1.Name = "cmb1";
 			this.cmb1.Size = new System.Drawing.Size(100, 23);
 			this.cmb1.TabIndex = 0;
-			this.cmb1.DropDown += new System.EventHandler(this.cmb1_DropDown);
-			this.cmb1.SelectedIndexChanged += new System.EventHandler(this.cmb1_SelectedIndexChanged);
-			this.cmb1.TextChanged += new System.EventHandler(this.cmb1_TextChanged);
-			this.cmb1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.cmb1_KeyDown);
-			this.cmb1.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.cmb1_KeyPress);
+			this.cmb1.DropDown += new System.EventHandler(this.Cmb1_DropDown);
+			this.cmb1.SelectedIndexChanged += new System.EventHandler(this.Cmb1_SelectedIndexChanged);
+			this.cmb1.TextChanged += new System.EventHandler(this.Cmb1_TextChanged);
+			this.cmb1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Cmb1_KeyDown);
+			this.cmb1.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.Cmb1_KeyPress);
 			// 
 			// btn1
 			// 
@@ -58,7 +58,7 @@
 			this.btn1.TabIndex = 1;
 			this.btn1.Text = "×";
 			this.btn1.UseVisualStyleBackColor = true;
-			this.btn1.Click += new System.EventHandler(this.btn1_Clip);
+			this.btn1.Click += new System.EventHandler(this.Btn1_Clip);
 
 			// 
 			// lstFillBox
@@ -74,7 +74,7 @@
 			this.mlstFillBox.Size = new System.Drawing.Size(1, 1);
 			this.mlstFillBox.TabIndex = 11;
 			mlstFillBox.Visible = false;
-			mlstFillBox.Click += new System.EventHandler(fill_Click);
+			mlstFillBox.Click += new System.EventHandler(Fill_Click);
 
 
 
