@@ -55,8 +55,9 @@ namespace FileFinder
 			this.searching = new System.Windows.Forms.Label();
 			this.splitContainer1 = new System.Windows.Forms.SplitContainer();
 			this.trvDir = new ControlExtends.TreeViewEx();
-			this.label4 = new System.Windows.Forms.Label();
+			this.lblCreateree = new System.Windows.Forms.Label();
 			this.btnClip = new System.Windows.Forms.Button();
+			this.prgTreeCreate = new System.Windows.Forms.ProgressBar();
 			this.listMenu.SuspendLayout();
 			this.pnl.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.pWait)).BeginInit();
@@ -382,7 +383,8 @@ namespace FileFinder
 			// splitContainer1.Panel1
 			// 
 			this.splitContainer1.Panel1.Controls.Add(this.trvDir);
-			this.splitContainer1.Panel1.Controls.Add(this.label4);
+			this.splitContainer1.Panel1.Controls.Add(this.lblCreateree);
+			this.splitContainer1.Panel1.Controls.Add(this.prgTreeCreate);
 			// 
 			// splitContainer1.Panel2
 			// 
@@ -392,27 +394,27 @@ namespace FileFinder
 			this.splitContainer1.SplitterDistance = 200;
 			this.splitContainer1.TabIndex = 15;
 			// 
-			// treeDir
+			// trvDir
 			// 
 			this.trvDir.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.trvDir.ImageIndex = 0;
 			this.trvDir.ImageList = this.imgForList;
 			this.trvDir.Location = new System.Drawing.Point(0, 0);
-			this.trvDir.Name = "treeDir";
+			this.trvDir.Name = "trvDir";
 			this.trvDir.SelectedImageIndex = 0;
 			this.trvDir.Size = new System.Drawing.Size(200, 249);
 			this.trvDir.TabIndex = 0;
 			this.trvDir.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.TrvDir_AfterSelect);
 			// 
-			// label4
+			// lblCreateree
 			// 
-			this.label4.Anchor = System.Windows.Forms.AnchorStyles.None;
-			this.label4.AutoSize = true;
-			this.label4.Location = new System.Drawing.Point(45, 112);
-			this.label4.Name = "label4";
-			this.label4.Size = new System.Drawing.Size(136, 15);
-			this.label4.TabIndex = 0;
-			this.label4.Text = "フォルダツリー作成中...";
+			this.lblCreateree.Anchor = System.Windows.Forms.AnchorStyles.None;
+			this.lblCreateree.AutoSize = true;
+			this.lblCreateree.Location = new System.Drawing.Point(38, 99);
+			this.lblCreateree.Name = "lblCreateree";
+			this.lblCreateree.Size = new System.Drawing.Size(136, 15);
+			this.lblCreateree.TabIndex = 0;
+			this.lblCreateree.Text = "フォルダツリー作成中...";
 			// 
 			// btnClip
 			// 
@@ -425,6 +427,14 @@ namespace FileFinder
 			this.btnClip.TabIndex = 11;
 			this.btnClip.UseVisualStyleBackColor = true;
 			this.btnClip.Click += new System.EventHandler(this.BtnClip_Click);
+			// 
+			// prgTreeCreate
+			// 
+			this.prgTreeCreate.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+			this.prgTreeCreate.Location = new System.Drawing.Point(34, 117);
+			this.prgTreeCreate.Name = "prgTreeCreate";
+			this.prgTreeCreate.Size = new System.Drawing.Size(147, 23);
+			this.prgTreeCreate.TabIndex = 1;
 			// 
 			// MainForm
 			// 
@@ -491,7 +501,8 @@ namespace FileFinder
 		private ControlExtends.ComboHistoryAndFill cmbKey;
 		private System.Windows.Forms.ImageList imgRadioIco;
 		private ImageRadioList rdoSearch;
-		private System.Windows.Forms.Label label4;
+		private System.Windows.Forms.Label lblCreateree;
+		private System.Windows.Forms.ProgressBar prgTreeCreate;
 	}
 }
 

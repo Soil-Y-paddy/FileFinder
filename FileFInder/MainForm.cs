@@ -58,9 +58,15 @@ namespace FileFinder
 			m_objFS = new FileSearcher();
 			m_objFS.Progress += Bgw_ProgressChanged;
 			m_objFS.RunWorkCompleted += Bgw_RunWorkerCompleted;
+
+			// ツリービュー
+			trvDir.AddNodeRangeComplete += TrvDir_AddNodeRangeComplete;
+			trvDir.AddRangeProgress += TrvDir_AddRangeProgress;
+
 			stat = ProcState.Default;
 
 		}
+
 
 
 
@@ -161,6 +167,7 @@ namespace FileFinder
 
 			m_objFS.FileResult.Clear();
 			lsvResultBox.VirtualListSize = 0;
+			trvDir.Nodes.Clear();
 			this.Refresh();
 
 			// ルートパスが不正なとき
@@ -591,13 +598,24 @@ namespace FileFinder
 
 				try
 				{
-					trvDir.Nodes.Clear();
-					trvDir.AddNode(strROOT,3,3);
+					//trvDir.AddNode(strROOT,3,3);
 
 					DebugWrite("Start");
 					trvDir.Visible = false;
 					trvDir.SuspendLayout();
 					Refresh();
+					TreeNodeElements[] aryNodeElm = new TreeNodeElements[m_objFS.FolderResult.Count];
+					for(int nCnt = 0; nCnt < m_objFS.FolderResult.Count; nCnt++)
+					{
+						DirInfo objDirInfo = m_objFS.FolderResult[nCnt];
+						string strRefPath = objDirInfo.strPath.Replace(cmbRoot.ComboText, strROOT);
+						aryNodeElm[nCnt] = new TreeNodeElements(strRefPath, 0, 2,
+								(objDirInfo.bIsSeach) ? Color.Blue : SystemColors.ControlText);
+					}
+					prgTreeCreate.Maximum = aryNodeElm.Length;
+					trvDir.AddNodeRange(aryNodeElm);
+
+					/*
 					// フォルダツリーを作成
 					foreach(DirInfo dirInfo in m_objFS.FolderResult)
 					{
@@ -614,7 +632,7 @@ namespace FileFinder
 					trvDir.SelectedNode = trvDir.FindNode(strROOT);
 					trvDir.Select();
 					DebugWrite("End");
-
+					*/
 
 				}
 				catch (Exception exp1)
@@ -655,6 +673,25 @@ namespace FileFinder
 			}
 			searching.Text = string.Join("\\",temp); //Path.GetFileName(m_FS.nowPath);	
 			lblResult.Text=string.Format("検索中... {0}件",e.ProgressPercentage);
+		}
+
+
+		private void TrvDir_AddRangeProgress(object sender, ProgressChangedEventArgs e)
+		{
+			prgTreeCreate.Value = e.ProgressPercentage;
+		}
+
+		private void TrvDir_AddNodeRangeComplete(object sender, RunWorkerCompletedEventArgs e)
+		{
+			if (trvDir.Nodes.Count > 0)
+			{
+				trvDir.Nodes[0].ImageIndex = 3;
+				trvDir.Nodes[0].SelectedImageIndex = 3;
+				trvDir.SelectedNode = trvDir.Nodes[0];
+				trvDir.Select();
+			}
+			DebugWrite("End");
+
 		}
 
 		#endregion

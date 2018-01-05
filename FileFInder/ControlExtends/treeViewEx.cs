@@ -5,11 +5,79 @@ using System.Drawing;
 namespace ControlExtends
 {
 
+	public struct TreeNodeElements
+	{
+		public string strPath;
+		public int nImageIndex;
+		public int nSelectIndex;
+		public Color stForeColor;
+		public TreeNodeElements(string p_strPath, int p_nImageIndex, int p_nSelectIndex, Color p_stForeColor)
+		{
+			strPath = p_strPath;
+			nImageIndex = p_nImageIndex;
+			nSelectIndex = p_nSelectIndex;
+			stForeColor = p_stForeColor;
+		}
+	}
+
 	/// <summary>
 	/// ツリービューのノードにフルパスでアクセスできるようにする
 	/// </summary>
 	class TreeViewEx : TreeView
 	{
+
+
+		BackgroundWorker worker;
+		TreeNodeElements[] m_aryElements;
+		TreeViewEx subThreadView;
+		public void AddNodeRange(TreeNodeElements[] p_aryElements)
+		{
+			worker = new BackgroundWorker()
+			{
+				WorkerReportsProgress = true
+			};
+			worker.DoWork += Worker_DoWork;
+			worker.ProgressChanged += Worker_ProgressChanged;
+			worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
+			m_aryElements = p_aryElements;
+			Visible = false;
+			SuspendLayout();
+			worker.RunWorkerAsync();
+		}
+
+		private void Worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+		{
+			TreeNode[] ctl = new TreeNode[subThreadView.Nodes.Count];
+			subThreadView.Nodes.CopyTo(ctl, 0);
+			subThreadView.Nodes.Clear();
+
+			Nodes.AddRange(ctl);
+			Visible = true;
+			ResumeLayout();
+			AddNodeRangeComplete?.Invoke(this, e);
+		}
+
+		private void Worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+		{
+			AddRangeProgress?.Invoke(this, e);
+		}
+
+		private void Worker_DoWork(object sender, DoWorkEventArgs e)
+		{
+			subThreadView = new TreeViewEx();
+			for (int nCnt = 0; nCnt<m_aryElements.Length; nCnt++)
+			{
+				TreeNodeElements stElement = m_aryElements[nCnt];
+				TreeNode node = subThreadView.AddNode(stElement.strPath, stElement.nImageIndex, stElement.nSelectIndex);
+				node.ForeColor = stElement.stForeColor;
+				worker.ReportProgress(nCnt);
+			}
+		}
+
+		public event RunWorkerCompletedEventHandler AddNodeRangeComplete;
+		public event ProgressChangedEventHandler AddRangeProgress;
+
+
 
 		/// <summary>
 		/// フルパスで指定されたツリービューを追加する
