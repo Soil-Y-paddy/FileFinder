@@ -26,6 +26,20 @@ namespace ControlExtends
 		#endregion
 
 		#region パブリックプロパティ
+
+		public Button DelBtun
+		{
+			get {
+				return btn1;
+			}
+		}
+		public ComboBox CmbBox
+		{
+			get {
+				return cmb1;
+			}
+		}
+
 		/// <summary>
 		/// フィルボックスを使用する場合true
 		/// </summary>
@@ -139,9 +153,13 @@ namespace ControlExtends
 			get { return m_nButtonSize; }
 			set
 			{
+				
 				m_nButtonSize = value;
+				/*
 				btn1.Size = new Size(m_nButtonSize, m_nButtonSize);
+				cmb1.Height = m_nButtonSize;
 				MinimumSize = new Size(MinimumSize.Width, m_nButtonSize);
+				*/
 			}
 		}
 

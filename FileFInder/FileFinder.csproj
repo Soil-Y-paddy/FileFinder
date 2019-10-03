@@ -78,6 +78,9 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="win32Api.cs" />
+    <EmbeddedResource Include="ControlExtends\ComboHistoryAndFill.resx">
+      <DependentUpon>ComboHistoryAndFill.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>

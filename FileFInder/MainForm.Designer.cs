@@ -46,18 +46,18 @@ namespace FileFinder
 			this.MnuFileProperty = new System.Windows.Forms.ToolStripMenuItem();
 			this.btnExit = new System.Windows.Forms.Button();
 			this.pnl = new System.Windows.Forms.Panel();
-			this.cmbKey = new ControlExtends.ComboHistoryAndFill();
-			this.cmbRoot = new ControlExtends.ComboHistoryAndFill();
 			this.pWait = new System.Windows.Forms.PictureBox();
 			this.btnError = new System.Windows.Forms.Button();
-			this.rdoSearch = new ControlExtends.ImageRadioList();
 			this.imgRadioIco = new System.Windows.Forms.ImageList(this.components);
 			this.searching = new System.Windows.Forms.Label();
 			this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-			this.trvDir = new ControlExtends.TreeViewEx();
 			this.lblCreateree = new System.Windows.Forms.Label();
-			this.btnClip = new System.Windows.Forms.Button();
 			this.prgTreeCreate = new System.Windows.Forms.ProgressBar();
+			this.btnClip = new System.Windows.Forms.Button();
+			this.trvDir = new ControlExtends.TreeViewEx();
+			this.cmbKey = new ControlExtends.ComboHistoryAndFill();
+			this.cmbRoot = new ControlExtends.ComboHistoryAndFill();
+			this.rdoSearch = new ControlExtends.ImageRadioList();
 			this.listMenu.SuspendLayout();
 			this.pnl.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.pWait)).BeginInit();
@@ -68,10 +68,10 @@ namespace FileFinder
 			// 
 			// label1
 			// 
-			this.label1.Location = new System.Drawing.Point(10, 9);
-			this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			this.label1.AutoSize = true;
+			this.label1.Location = new System.Drawing.Point(8, 13);
 			this.label1.Name = "label1";
-			this.label1.Size = new System.Drawing.Size(80, 19);
+			this.label1.Size = new System.Drawing.Size(58, 12);
 			this.label1.TabIndex = 0;
 			this.label1.Text = "ルートパス：";
 			this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -79,10 +79,10 @@ namespace FileFinder
 			// 
 			// label2
 			// 
-			this.label2.Location = new System.Drawing.Point(13, 66);
-			this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			this.label2.AutoSize = true;
+			this.label2.Location = new System.Drawing.Point(8, 74);
 			this.label2.Name = "label2";
-			this.label2.Size = new System.Drawing.Size(77, 23);
+			this.label2.Size = new System.Drawing.Size(59, 12);
 			this.label2.TabIndex = 0;
 			this.label2.Text = "キーワード：";
 			this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -91,10 +91,9 @@ namespace FileFinder
 			// chkSubDir
 			// 
 			this.chkSubDir.AutoSize = true;
-			this.chkSubDir.Location = new System.Drawing.Point(92, 95);
-			this.chkSubDir.Margin = new System.Windows.Forms.Padding(4);
+			this.chkSubDir.Location = new System.Drawing.Point(73, 104);
 			this.chkSubDir.Name = "chkSubDir";
-			this.chkSubDir.Size = new System.Drawing.Size(160, 19);
+			this.chkSubDir.Size = new System.Drawing.Size(130, 16);
 			this.chkSubDir.TabIndex = 9;
 			this.chkSubDir.Text = "サブフォルダも検索する";
 			this.chkSubDir.UseVisualStyleBackColor = true;
@@ -102,10 +101,9 @@ namespace FileFinder
 			// btnSearch
 			// 
 			this.btnSearch.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.btnSearch.Location = new System.Drawing.Point(338, 90);
-			this.btnSearch.Margin = new System.Windows.Forms.Padding(4);
+			this.btnSearch.Location = new System.Drawing.Point(464, 100);
 			this.btnSearch.Name = "btnSearch";
-			this.btnSearch.Size = new System.Drawing.Size(93, 29);
+			this.btnSearch.Size = new System.Drawing.Size(70, 23);
 			this.btnSearch.TabIndex = 10;
 			this.btnSearch.Text = "検索";
 			this.btnSearch.UseVisualStyleBackColor = true;
@@ -114,10 +112,9 @@ namespace FileFinder
 			// bntSNSY
 			// 
 			this.bntSNSY.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.bntSNSY.Location = new System.Drawing.Point(369, 4);
-			this.bntSNSY.Margin = new System.Windows.Forms.Padding(4);
+			this.bntSNSY.Location = new System.Drawing.Point(484, 8);
 			this.bntSNSY.Name = "bntSNSY";
-			this.bntSNSY.Size = new System.Drawing.Size(67, 29);
+			this.bntSNSY.Size = new System.Drawing.Size(50, 23);
 			this.bntSNSY.TabIndex = 2;
 			this.bntSNSY.Text = "参照...";
 			this.bntSNSY.UseVisualStyleBackColor = true;
@@ -132,19 +129,18 @@ namespace FileFinder
 			// 
 			this.lblResult.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.lblResult.AutoSize = true;
-			this.lblResult.Location = new System.Drawing.Point(20, 382);
-			this.lblResult.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			this.lblResult.Location = new System.Drawing.Point(15, 351);
 			this.lblResult.Name = "lblResult";
-			this.lblResult.Size = new System.Drawing.Size(95, 15);
+			this.lblResult.Size = new System.Drawing.Size(75, 12);
 			this.lblResult.TabIndex = 7;
 			this.lblResult.Text = "検索結果 0件";
 			// 
 			// label3
 			// 
-			this.label3.Location = new System.Drawing.Point(10, 38);
-			this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			this.label3.AutoSize = true;
+			this.label3.Location = new System.Drawing.Point(8, 41);
 			this.label3.Name = "label3";
-			this.label3.Size = new System.Drawing.Size(80, 19);
+			this.label3.Size = new System.Drawing.Size(59, 12);
 			this.label3.TabIndex = 0;
 			this.label3.Text = "検索対象：";
 			this.label3.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -157,11 +153,11 @@ namespace FileFinder
 			this.lsvResultBox.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.lsvResultBox.FullRowSelect = true;
 			this.lsvResultBox.GridLines = true;
+			this.lsvResultBox.HideSelection = false;
 			this.lsvResultBox.LargeImageList = this.imgForList;
 			this.lsvResultBox.Location = new System.Drawing.Point(0, 0);
-			this.lsvResultBox.Margin = new System.Windows.Forms.Padding(4);
 			this.lsvResultBox.Name = "lsvResultBox";
-			this.lsvResultBox.Size = new System.Drawing.Size(238, 249);
+			this.lsvResultBox.Size = new System.Drawing.Size(293, 217);
 			this.lsvResultBox.SmallImageList = this.imgForList;
 			this.lsvResultBox.Sorting = System.Windows.Forms.SortOrder.Ascending;
 			this.lsvResultBox.TabIndex = 12;
@@ -194,10 +190,9 @@ namespace FileFinder
 			this.lblSort.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.lblSort.AutoSize = true;
 			this.lblSort.BackColor = System.Drawing.Color.White;
-			this.lblSort.Location = new System.Drawing.Point(140, 9);
-			this.lblSort.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			this.lblSort.Location = new System.Drawing.Point(220, 7);
 			this.lblSort.Name = "lblSort";
-			this.lblSort.Size = new System.Drawing.Size(62, 15);
+			this.lblSort.Size = new System.Drawing.Size(49, 12);
 			this.lblSort.TabIndex = 11;
 			this.lblSort.Text = "(名前順)";
 			this.lblSort.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
@@ -212,43 +207,42 @@ namespace FileFinder
             this.MnuOpenFolder,
             this.MnuFileProperty});
 			this.listMenu.Name = "contextMenuStrip2";
-			this.listMenu.Size = new System.Drawing.Size(145, 100);
+			this.listMenu.Size = new System.Drawing.Size(129, 92);
 			// 
 			// MnuPathCopy
 			// 
 			this.MnuPathCopy.Name = "MnuPathCopy";
-			this.MnuPathCopy.Size = new System.Drawing.Size(144, 24);
+			this.MnuPathCopy.Size = new System.Drawing.Size(128, 22);
 			this.MnuPathCopy.Text = "パスのコピー";
 			this.MnuPathCopy.Click += new System.EventHandler(this.MnuPathCopy_Click);
 			// 
 			// MnuOpenFile
 			// 
 			this.MnuOpenFile.Name = "MnuOpenFile";
-			this.MnuOpenFile.Size = new System.Drawing.Size(144, 24);
+			this.MnuOpenFile.Size = new System.Drawing.Size(128, 22);
 			this.MnuOpenFile.Text = "開く";
 			this.MnuOpenFile.Click += new System.EventHandler(this.MnuOpenFile_Click);
 			// 
 			// MnuOpenFolder
 			// 
 			this.MnuOpenFolder.Name = "MnuOpenFolder";
-			this.MnuOpenFolder.Size = new System.Drawing.Size(144, 24);
+			this.MnuOpenFolder.Size = new System.Drawing.Size(128, 22);
 			this.MnuOpenFolder.Text = "場所を開く";
 			this.MnuOpenFolder.Click += new System.EventHandler(this.MnuOpenFolder_Click);
 			// 
 			// MnuFileProperty
 			// 
 			this.MnuFileProperty.Name = "MnuFileProperty";
-			this.MnuFileProperty.Size = new System.Drawing.Size(144, 24);
+			this.MnuFileProperty.Size = new System.Drawing.Size(128, 22);
 			this.MnuFileProperty.Text = "プロパティ";
 			this.MnuFileProperty.Click += new System.EventHandler(this.MnuFileProperty_Click);
 			// 
 			// btnExit
 			// 
 			this.btnExit.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-			this.btnExit.Location = new System.Drawing.Point(387, 387);
-			this.btnExit.Margin = new System.Windows.Forms.Padding(4);
+			this.btnExit.Location = new System.Drawing.Point(497, 355);
 			this.btnExit.Name = "btnExit";
-			this.btnExit.Size = new System.Drawing.Size(69, 29);
+			this.btnExit.Size = new System.Drawing.Size(52, 23);
 			this.btnExit.TabIndex = 13;
 			this.btnExit.Text = "終了";
 			this.btnExit.UseVisualStyleBackColor = true;
@@ -269,62 +263,20 @@ namespace FileFinder
 			this.pnl.Controls.Add(this.btnSearch);
 			this.pnl.Controls.Add(this.bntSNSY);
 			this.pnl.Controls.Add(this.rdoSearch);
-			this.pnl.Location = new System.Drawing.Point(16, 4);
-			this.pnl.Margin = new System.Windows.Forms.Padding(4);
+			this.pnl.Location = new System.Drawing.Point(12, 3);
 			this.pnl.Name = "pnl";
-			this.pnl.Size = new System.Drawing.Size(440, 124);
+			this.pnl.Size = new System.Drawing.Size(537, 127);
 			this.pnl.TabIndex = 12;
 			this.pnl.MouseClick += new System.Windows.Forms.MouseEventHandler(this.Pnl_MouseClick);
-			// 
-			// cmbKey
-			// 
-			this.cmbKey.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-			this.cmbKey.ButtoBackColor = System.Drawing.SystemColors.Control;
-			this.cmbKey.ButtonSize = 23;
-			this.cmbKey.ComboBackColor = System.Drawing.SystemColors.Window;
-			this.cmbKey.ComboForeColor = System.Drawing.SystemColors.WindowText;
-			this.cmbKey.ComboText = "";
-			this.cmbKey.FIllBoxEnable = false;
-			this.cmbKey.FillBoxHeight = 50;
-			this.cmbKey.Items = new string[] {
-        ""};
-			this.cmbKey.Location = new System.Drawing.Point(97, 66);
-			this.cmbKey.MinimumSize = new System.Drawing.Size(0, 23);
-			this.cmbKey.Name = "cmbKey";
-			this.cmbKey.SelectedIndex = 0;
-			this.cmbKey.Size = new System.Drawing.Size(264, 23);
-			this.cmbKey.TabIndex = 16;
-			// 
-			// cmbRoot
-			// 
-			this.cmbRoot.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-			this.cmbRoot.ButtoBackColor = System.Drawing.SystemColors.Control;
-			this.cmbRoot.ButtonSize = 23;
-			this.cmbRoot.ComboBackColor = System.Drawing.SystemColors.Window;
-			this.cmbRoot.ComboForeColor = System.Drawing.SystemColors.WindowText;
-			this.cmbRoot.ComboText = "";
-			this.cmbRoot.FIllBoxEnable = true;
-			this.cmbRoot.FillBoxHeight = 50;
-			this.cmbRoot.Items = new string[] {
-        ""};
-			this.cmbRoot.Location = new System.Drawing.Point(97, 8);
-			this.cmbRoot.MinimumSize = new System.Drawing.Size(0, 23);
-			this.cmbRoot.Name = "cmbRoot";
-			this.cmbRoot.SelectedIndex = 0;
-			this.cmbRoot.Size = new System.Drawing.Size(264, 23);
-			this.cmbRoot.TabIndex = 15;
 			// 
 			// pWait
 			// 
 			this.pWait.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
 			this.pWait.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
 			this.pWait.Image = global::FileFinder.Properties.Resources.diskA;
-			this.pWait.Location = new System.Drawing.Point(308, 91);
-			this.pWait.Margin = new System.Windows.Forms.Padding(4);
+			this.pWait.Location = new System.Drawing.Point(441, 101);
 			this.pWait.Name = "pWait";
-			this.pWait.Size = new System.Drawing.Size(27, 25);
+			this.pWait.Size = new System.Drawing.Size(20, 20);
 			this.pWait.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
 			this.pWait.TabIndex = 14;
 			this.pWait.TabStop = false;
@@ -333,26 +285,14 @@ namespace FileFinder
 			// btnError
 			// 
 			this.btnError.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-			this.btnError.Location = new System.Drawing.Point(272, 90);
-			this.btnError.Margin = new System.Windows.Forms.Padding(4);
+			this.btnError.Location = new System.Drawing.Point(414, 100);
 			this.btnError.Name = "btnError";
-			this.btnError.Size = new System.Drawing.Size(65, 29);
+			this.btnError.Size = new System.Drawing.Size(49, 23);
 			this.btnError.TabIndex = 10;
 			this.btnError.Text = "エラー";
 			this.btnError.UseVisualStyleBackColor = true;
 			this.btnError.Visible = false;
 			this.btnError.Click += new System.EventHandler(this.BtnError_Click);
-			// 
-			// rdoSearch
-			// 
-			this.rdoSearch.Images = this.imgRadioIco;
-			this.rdoSearch.Location = new System.Drawing.Point(95, 37);
-			this.rdoSearch.Name = "rdoSearch";
-			this.rdoSearch.RadioMargin = new System.Windows.Forms.Padding(3, 0, 3, 0);
-			this.rdoSearch.SelectedIndex = 0;
-			this.rdoSearch.Size = new System.Drawing.Size(155, 26);
-			this.rdoSearch.TabIndex = 17;
-			this.rdoSearch.CheckedChanged += new System.EventHandler(this.RdoSel_SelectedChanged);
 			// 
 			// imgRadioIco
 			// 
@@ -366,10 +306,9 @@ namespace FileFinder
 			// 
 			this.searching.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
 			this.searching.AutoSize = true;
-			this.searching.Location = new System.Drawing.Point(20, 403);
-			this.searching.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+			this.searching.Location = new System.Drawing.Point(15, 367);
 			this.searching.Name = "searching";
-			this.searching.Size = new System.Drawing.Size(0, 15);
+			this.searching.Size = new System.Drawing.Size(0, 12);
 			this.searching.TabIndex = 7;
 			// 
 			// splitContainer1
@@ -377,7 +316,8 @@ namespace FileFinder
 			this.splitContainer1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-			this.splitContainer1.Location = new System.Drawing.Point(16, 130);
+			this.splitContainer1.Location = new System.Drawing.Point(12, 131);
+			this.splitContainer1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
 			this.splitContainer1.Name = "splitContainer1";
 			// 
 			// splitContainer1.Panel1
@@ -390,9 +330,41 @@ namespace FileFinder
 			// 
 			this.splitContainer1.Panel2.Controls.Add(this.lblSort);
 			this.splitContainer1.Panel2.Controls.Add(this.lsvResultBox);
-			this.splitContainer1.Size = new System.Drawing.Size(442, 249);
-			this.splitContainer1.SplitterDistance = 200;
+			this.splitContainer1.Size = new System.Drawing.Size(539, 217);
+			this.splitContainer1.SplitterDistance = 243;
+			this.splitContainer1.SplitterWidth = 3;
 			this.splitContainer1.TabIndex = 15;
+			// 
+			// lblCreateree
+			// 
+			this.lblCreateree.Anchor = System.Windows.Forms.AnchorStyles.None;
+			this.lblCreateree.AutoSize = true;
+			this.lblCreateree.Location = new System.Drawing.Point(74, 88);
+			this.lblCreateree.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+			this.lblCreateree.Name = "lblCreateree";
+			this.lblCreateree.Size = new System.Drawing.Size(108, 12);
+			this.lblCreateree.TabIndex = 0;
+			this.lblCreateree.Text = "フォルダツリー作成中...";
+			// 
+			// prgTreeCreate
+			// 
+			this.prgTreeCreate.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+			this.prgTreeCreate.Location = new System.Drawing.Point(26, 103);
+			this.prgTreeCreate.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+			this.prgTreeCreate.Name = "prgTreeCreate";
+			this.prgTreeCreate.Size = new System.Drawing.Size(203, 18);
+			this.prgTreeCreate.TabIndex = 1;
+			// 
+			// btnClip
+			// 
+			this.btnClip.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+			this.btnClip.Image = ((System.Drawing.Image)(resources.GetObject("btnClip.Image")));
+			this.btnClip.Location = new System.Drawing.Point(471, 355);
+			this.btnClip.Name = "btnClip";
+			this.btnClip.Size = new System.Drawing.Size(22, 23);
+			this.btnClip.TabIndex = 11;
+			this.btnClip.UseVisualStyleBackColor = true;
+			this.btnClip.Click += new System.EventHandler(this.BtnClip_Click);
 			// 
 			// trvDir
 			// 
@@ -400,48 +372,76 @@ namespace FileFinder
 			this.trvDir.ImageIndex = 0;
 			this.trvDir.ImageList = this.imgForList;
 			this.trvDir.Location = new System.Drawing.Point(0, 0);
+			this.trvDir.Margin = new System.Windows.Forms.Padding(2);
 			this.trvDir.Name = "trvDir";
 			this.trvDir.SelectedImageIndex = 0;
-			this.trvDir.Size = new System.Drawing.Size(200, 249);
+			this.trvDir.Size = new System.Drawing.Size(243, 217);
 			this.trvDir.TabIndex = 0;
 			this.trvDir.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.TrvDir_AfterSelect);
 			// 
-			// lblCreateree
+			// cmbKey
 			// 
-			this.lblCreateree.Anchor = System.Windows.Forms.AnchorStyles.None;
-			this.lblCreateree.AutoSize = true;
-			this.lblCreateree.Location = new System.Drawing.Point(38, 99);
-			this.lblCreateree.Name = "lblCreateree";
-			this.lblCreateree.Size = new System.Drawing.Size(136, 15);
-			this.lblCreateree.TabIndex = 0;
-			this.lblCreateree.Text = "フォルダツリー作成中...";
+			this.cmbKey.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+			this.cmbKey.AutoScroll = true;
+			this.cmbKey.ButtoBackColor = System.Drawing.SystemColors.Control;
+			this.cmbKey.ButtonSize = 23;
+			this.cmbKey.ComboBackColor = System.Drawing.SystemColors.Window;
+			this.cmbKey.ComboForeColor = System.Drawing.SystemColors.WindowText;
+			this.cmbKey.ComboText = "";
+			this.cmbKey.FIllBoxEnable = false;
+			this.cmbKey.FillBoxHeight = 50;
+			this.cmbKey.Items = new string[] {
+        ""};
+			this.cmbKey.Location = new System.Drawing.Point(73, 68);
+			this.cmbKey.Margin = new System.Windows.Forms.Padding(2);
+			this.cmbKey.MinimumSize = new System.Drawing.Size(0, 18);
+			this.cmbKey.Name = "cmbKey";
+			this.cmbKey.SelectedIndex = 0;
+			this.cmbKey.Size = new System.Drawing.Size(458, 27);
+			this.cmbKey.TabIndex = 16;
 			// 
-			// btnClip
+			// cmbRoot
 			// 
-			this.btnClip.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-			this.btnClip.Image = ((System.Drawing.Image)(resources.GetObject("btnClip.Image")));
-			this.btnClip.Location = new System.Drawing.Point(352, 387);
-			this.btnClip.Margin = new System.Windows.Forms.Padding(4);
-			this.btnClip.Name = "btnClip";
-			this.btnClip.Size = new System.Drawing.Size(29, 29);
-			this.btnClip.TabIndex = 11;
-			this.btnClip.UseVisualStyleBackColor = true;
-			this.btnClip.Click += new System.EventHandler(this.BtnClip_Click);
+			this.cmbRoot.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+			this.cmbRoot.AutoSize = true;
+			this.cmbRoot.ButtoBackColor = System.Drawing.SystemColors.Control;
+			this.cmbRoot.ButtonSize = 23;
+			this.cmbRoot.ComboBackColor = System.Drawing.SystemColors.Window;
+			this.cmbRoot.ComboForeColor = System.Drawing.SystemColors.WindowText;
+			this.cmbRoot.ComboText = "";
+			this.cmbRoot.FIllBoxEnable = true;
+			this.cmbRoot.FillBoxHeight = 50;
+			this.cmbRoot.Items = new string[] {
+        ""};
+			this.cmbRoot.Location = new System.Drawing.Point(73, 6);
+			this.cmbRoot.Margin = new System.Windows.Forms.Padding(2);
+			this.cmbRoot.MinimumSize = new System.Drawing.Size(0, 18);
+			this.cmbRoot.Name = "cmbRoot";
+			this.cmbRoot.SelectedIndex = 0;
+			this.cmbRoot.Size = new System.Drawing.Size(405, 26);
+			this.cmbRoot.TabIndex = 15;
 			// 
-			// prgTreeCreate
+			// rdoSearch
 			// 
-			this.prgTreeCreate.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-			this.prgTreeCreate.Location = new System.Drawing.Point(34, 117);
-			this.prgTreeCreate.Name = "prgTreeCreate";
-			this.prgTreeCreate.Size = new System.Drawing.Size(147, 23);
-			this.prgTreeCreate.TabIndex = 1;
+			this.rdoSearch.AutoSize = true;
+			this.rdoSearch.Images = this.imgRadioIco;
+			this.rdoSearch.Location = new System.Drawing.Point(71, 36);
+			this.rdoSearch.Margin = new System.Windows.Forms.Padding(2);
+			this.rdoSearch.Name = "rdoSearch";
+			this.rdoSearch.RadioMargin = new System.Windows.Forms.Padding(3, 0, 3, 0);
+			this.rdoSearch.SelectedIndex = 0;
+			this.rdoSearch.Size = new System.Drawing.Size(147, 29);
+			this.rdoSearch.TabIndex = 17;
+			this.rdoSearch.CheckedChanged += new System.EventHandler(this.RdoSel_SelectedChanged);
 			// 
 			// MainForm
 			// 
-			this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
+			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.BackColor = System.Drawing.SystemColors.Control;
-			this.ClientSize = new System.Drawing.Size(464, 435);
+			this.ClientSize = new System.Drawing.Size(555, 393);
 			this.Controls.Add(this.splitContainer1);
 			this.Controls.Add(this.pnl);
 			this.Controls.Add(this.searching);
@@ -449,8 +449,7 @@ namespace FileFinder
 			this.Controls.Add(this.btnExit);
 			this.Controls.Add(this.btnClip);
 			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-			this.Margin = new System.Windows.Forms.Padding(4);
-			this.MinimumSize = new System.Drawing.Size(474, 438);
+			this.MinimumSize = new System.Drawing.Size(360, 358);
 			this.Name = "MainForm";
 			this.Text = "ファイルファインダ";
 			this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
