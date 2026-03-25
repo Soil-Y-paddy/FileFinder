@@ -22,9 +22,9 @@ namespace FileFinder
 		[XmlElement("WindowRect")]
 		public RectAngleSei m_stWindowRect; // ウィンドウ位置とサイズ
 		[XmlElement("rootHistory")]
-		public ControlExtends.ComboHistoryData m_stRootHistory;
+		public lib.ComboHistoryData m_stRootHistory;
 		[XmlElement("fileHistory")]
-		public ControlExtends.ComboHistoryData m_stKeyHistrory;
+		public lib.ComboHistoryData m_stKeyHistrory;
 
 		#endregion
 	
@@ -35,8 +35,8 @@ namespace FileFinder
 			m_bSubDir = false;
 			m_nSplitDistance = 140;
 			m_stWindowRect = new RectAngleSei();
-			m_stRootHistory = new ControlExtends.ComboHistoryData();
-			m_stKeyHistrory = new ControlExtends.ComboHistoryData();
+			m_stRootHistory = new lib.ComboHistoryData();
+			m_stKeyHistrory = new lib.ComboHistoryData();
 		}
 
 

@@ -3,7 +3,7 @@ using System.Windows.Forms;
 using System.Drawing;
 using System.ComponentModel;
 
-namespace ControlExtends
+namespace lib
 {
 	/// <summary>
 	/// 画像(ボタン配置)タイプのラジオボタンセット

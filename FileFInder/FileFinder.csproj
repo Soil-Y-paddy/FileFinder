@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>FileFinder</RootNamespace>
     <AssemblyName>FileFinder</AssemblyName>
-    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -22,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -31,6 +32,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>PathList.ico</ApplicationIcon>
@@ -40,6 +42,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.DirectoryServices" />
     <Reference Include="System.Data" />
     <Reference Include="System.Deployment" />
@@ -54,6 +57,9 @@
     <Compile Include="ControlExtends\ComboHistoryAndFill.Designer.cs">
       <DependentUpon>ComboHistoryAndFill.cs</DependentUpon>
     </Compile>
+    <Compile Include="ControlExtends\Common.cs" />
+    <Compile Include="ControlExtends\DataGridViewEx.cs" />
+    <Compile Include="ControlExtends\EnumEx.cs" />
     <Compile Include="ControlExtends\ImageRadioList.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -74,9 +80,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="serial.cs" />
     <Compile Include="Settings.cs" />
-    <Compile Include="ControlExtends\treeViewEx.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Include="ControlExtends\treeViewEx.cs" />
     <Compile Include="win32Api.cs" />
     <EmbeddedResource Include="ControlExtends\ComboHistoryAndFill.resx">
       <DependentUpon>ComboHistoryAndFill.cs</DependentUpon>

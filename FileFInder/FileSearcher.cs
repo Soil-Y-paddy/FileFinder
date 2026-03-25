@@ -1,8 +1,13 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using lib;
 
 namespace FileFinder
 {
@@ -10,36 +15,89 @@ namespace FileFinder
 	/// <summary>
 	/// ファイルパスと種類を保持する構造体
 	/// </summary>
-	public struct FileInfo
+	public class FileViewItem
 	{
+
+		[Display(Name = "", Order = 0), ColumnWidth(40), IconOption()]
+		public string IconText => IsDirectory ? ( IsDrive ? "💿️" : "📁" ) : "📝";
+
+		[Display(Name = "名前", Order = 1), ColumnWidth(-1)]
+
+		public string Name { get; set; } = "";
+
+		[Browsable(false)]
+		public string FullPath { get; set; } = "";
+
+		[Browsable(false)]
+		public bool IsDirectory { get; private set; } = false;
+		[Browsable(false)]
+		public bool IsDrive { get; private set; } = false;
+
+		[Browsable(false)]
+		public bool IsInZIP { get; set; } = false;
+
+		[Browsable(false)]
+		public long? Size { get; set; }
+
+		[Display(Name = "サイズ", Order = 2), ColumnWidth(100)]
+		public string SizeText
+			=> ( !IsDirectory ) || IsDrive ? Former.ToReadableSize(Size ?? 0) : "";
+
+		[Display(Name = "更新日時", Order = 3), ColumnWidth(150)]
+		public DateTime LastWriteTime { get; set; }
+
+
 		/// <summary>
-		/// ファイルパス
+		/// ファイルの場合1
 		/// </summary>
-		public string strPath;
-		/// <summary>
-		/// フォルダの場合true
-		/// </summary>
-		public bool bIsDir;
+		[Browsable(false)]
+		public int TypeI
+		{
+			get { return ( IsDirectory ) ? 0 : 1; }
+		}
+
+
+
 		/// <summary>
 		/// 構造体の生成
 		/// </summary>
 		/// <param name="p_strPath">ファイルパス</param>
 		/// <param name="p_bIsDir">フォルダの場合true</param>
-		public FileInfo(string p_strPath, bool p_bIsDir)
+		public FileViewItem(string p_strPath, bool p_bIsDir)
 		{
-			strPath = p_strPath;
-			bIsDir = p_bIsDir;
+			FullPath = p_strPath;
+			IsDirectory = p_bIsDir;
+			if ( File.Exists(p_strPath) )
+			{
+				SetFileInfo(new FileInfo(p_strPath));
+			}
+			else if ( Directory.Exists(p_strPath) )
+			{
+				SetDirecotyInfo(new DirectoryInfo(p_strPath));
+			}
+
 		}
+
 		public override string ToString()
 		{
-			return strPath;
+			return FullPath;
 		}
-		/// <summary>
-		/// フォルダの場合1
-		/// </summary>
-		public int TypeI
+
+		public void SetFileInfo( FileInfo fileInfo )
 		{
-			get { return (bIsDir) ? 0 : 1; }
+			Name = fileInfo.Name;
+			FullPath = fileInfo.FullName;
+			IsDirectory = false;
+			Size = fileInfo.Length;
+			LastWriteTime = fileInfo.LastWriteTime;
+		}
+		public void SetDirecotyInfo( DirectoryInfo dirInfo )
+		{
+
+			Name = dirInfo.Name;
+			FullPath = dirInfo.FullName;
+			IsDirectory = true;
+			LastWriteTime = dirInfo.LastWriteTime;
 		}
 
 	}
@@ -107,8 +165,8 @@ namespace FileFinder
 		int m_nType; // 0:ファイル名 / 1:フォルダ名 / 2:ファイル・フォルダ両方
 		bool m_bSub; // サブフォルダも検索する場合true
 
-		List<FileInfo> m_lstResult = new List<FileInfo>(); //検索結果ファイルリスト
-		List<DirInfo> m_lstFolder = new List<DirInfo>(); // 検索結果フォルダリスト
+		SortableBindingList<FileViewItem> m_lstResult = new SortableBindingList<FileViewItem>(); //検索結果ファイルリスト
+		ConcurrentBag<DirInfo> m_lstFolder = new ConcurrentBag<DirInfo>(); // 検索結果フォルダリスト
 
 		#endregion
 
@@ -141,7 +199,7 @@ namespace FileFinder
 		/// <summary>
 		/// 検索結果のファイルリスト
 		/// </summary>
-		public List<FileInfo> FileResult
+		public SortableBindingList<FileViewItem> FileResult
 		{
 			get
 			{
@@ -152,11 +210,11 @@ namespace FileFinder
 		/// <summary>
 		/// 検索結果のフォルダリスト
 		/// </summary>
-		public List<DirInfo> FolderResult
+		public SortableBindingList<DirInfo> FolderResult
 		{
 			get
 			{
-				return m_lstFolder;
+				return new SortableBindingList<DirInfo>( m_lstFolder.ToList());
 			}
 		}
 
@@ -196,8 +254,8 @@ namespace FileFinder
 			m_bSub = p_blSub;
 
 			Cancel = false;
-			m_lstResult.Clear();
-			m_lstFolder.Clear();
+			m_lstResult= new SortableBindingList<FileViewItem>();
+			m_lstFolder = new ConcurrentBag<DirInfo>();
 			ExceptionMsg = "";
 			NowPath = "";
 			m_bgwWk1.RunWorkerAsync();
@@ -210,13 +268,13 @@ namespace FileFinder
 		/// <param name="p_strRootPath"></param>
 		/// <param name="p_lstFileInfos"></param>
 		/// <returns></returns>
-		private FileInfo[] GetList(string p_strRootPath, List<FileInfo> p_lstFileInfos = null)
+		private FileViewItem[] GetList(string p_strRootPath, ConcurrentBag<FileViewItem> p_lstFileInfos = null)
 
 		{
 			bool bFind = false;
 			if (p_lstFileInfos == null)
 			{
-				p_lstFileInfos = new List<FileInfo>();
+				p_lstFileInfos = new ConcurrentBag<FileViewItem>();
 			}
 			if (!Cancel)
 			{
@@ -229,21 +287,26 @@ namespace FileFinder
 					if (m_nType == 0 || m_nType == 2)
 					{
 
-						foreach (string strFilePath in Directory.GetFiles(p_strRootPath, m_strFilePattern))
+						var files = Directory.GetFiles(p_strRootPath, m_strFilePattern);
+						if(files.Length > 0)
 						{
 							bFind = true;
-							p_lstFileInfos.Add(new FileInfo(strFilePath, false));
 						}
+						Parallel.ForEach(files, file =>
+						{
+							p_lstFileInfos.Add(new FileViewItem(file, false));
+						});
 					}
 
 					// フォルダ検索
 					if (m_nType == 1 || m_nType == 2)
 					{
-						foreach (string strFolderPath in Directory.GetDirectories(p_strRootPath, m_strFilePattern))
+						var dirs = Directory.GetDirectories(p_strRootPath, m_strFilePattern);
+						Parallel.ForEach(dirs, dir =>
 						{
-							p_lstFileInfos.Add(new FileInfo(strFolderPath, true));
-							m_lstFolder.Add(new DirInfo(strFolderPath, true));
-						}
+							p_lstFileInfos.Add(new FileViewItem(dir, true));
+							m_lstFolder.Add(new DirInfo(dir, true));
+						});
 					}
 					if (bFind)
 					{
@@ -257,9 +320,17 @@ namespace FileFinder
 					if (m_bSub)
 					{
 						// サブフォルダを検索する
-						foreach (string strSubFolderPath in Directory.GetDirectories(p_strRootPath))
+						var dirs = Directory.GetDirectories(p_strRootPath);
+						/*
+						Parallel.ForEach(dirs, dir =>
 						{
-							string dis = Path.Combine(p_strRootPath, strSubFolderPath);
+							string dis = Path.Combine(p_strRootPath, dir);
+							GetList(dis, p_lstFileInfos);
+						});
+						*/
+						foreach ( var dir in dirs )
+						{
+							string dis = Path.Combine(p_strRootPath, dir);
 							GetList(dis, p_lstFileInfos);
 						}
 					}
@@ -302,35 +373,4 @@ namespace FileFinder
 
 	#endregion
 
-	#region 構造体リストのソートクラス
-
-	public class FileInfoSorter : IComparer<FileInfo>
-	{
-		int _sorttype;
-		/// <summary>
-		/// ファイル一覧のソートクラス
-		/// </summary>
-		/// <param name="sortcol">0:名前正順 / 1:名前逆順 / 2:種類正順 / 3:種類逆順</param>
-		public FileInfoSorter(int sortcol)
-		{
-			_sorttype = sortcol;
-		}
-		public int Compare(FileInfo x, FileInfo y)
-		{
-			switch (_sorttype)
-			{
-				case 0:// 名前正順
-				default:
-					return string.Compare(x.strPath, y.strPath);
-				case 1:// 名前逆順
-					return string.Compare(y.strPath, x.strPath);
-				case 2:// 種類正順
-					return x.TypeI - y.TypeI;
-				case 3:// 種類逆順
-					return y.TypeI - x.TypeI;
-
-			}
-		}
-	}
-	#endregion
 }

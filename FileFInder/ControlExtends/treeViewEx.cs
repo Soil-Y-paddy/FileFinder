@@ -1,19 +1,195 @@
 ﻿using System.Windows.Forms;
 using System.ComponentModel;
 using System.Drawing;
+using System.Collections.Generic;
+using System.IO;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Threading;
 
-namespace ControlExtends
+namespace lib
 {
+
+	public class PathTreeManager
+	{
+		public char Sepalater { get; set;} = '\\';
+		private readonly HashSet<string> _paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+		// ★ パス → アイテム一覧
+		private readonly Dictionary<string, List<TreeNodeElements>> _itemsByPath = new Dictionary<string, List<TreeNodeElements>>(StringComparer.OrdinalIgnoreCase);
+
+		// ★ キャッシュ（子ノード）
+		private readonly Dictionary<string, List<string>> _childrenCache = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+		public TreeNodeElements DefaultPattern { get; set; }
+
+		public int Count => _paths.Count;
+
+
+		public PathTreeManager()
+		{
+			DefaultPattern = new TreeNodeElements("",0,1,Color.Black);
+		}
+		public PathTreeManager(TreeNodeElements defaultPtrn)
+		{
+			DefaultPattern = defaultPtrn;
+		}
+
+		#region 追加
+
+		public void Add( TreeNodeElements item )
+		{
+			var path = Normalize(item.FullPath);
+
+			_paths.Add(path);
+			// パス→アイテム一覧が存在しない？
+			if ( !_itemsByPath.TryGetValue(path, out var list) )
+			{
+				list = new List<TreeNodeElements>();
+				_itemsByPath[path] = list;
+			}
+
+			list.Add(item);
+
+			_childrenCache.Clear();
+		}
+
+		public void AddRange( IEnumerable<TreeNodeElements> items )
+		{
+			foreach ( var item in items )
+			{
+				var path = Normalize(item.FullPath);
+
+				_paths.Add(path);
+
+				if ( !_itemsByPath.TryGetValue(path, out var list) )
+				{
+					list = new List<TreeNodeElements>();
+					_itemsByPath[path] = list;
+				}
+
+				list.Add(item);
+			}
+
+			_childrenCache.Clear();
+		}
+
+		#endregion
+
+		#region ツリー取得
+
+		public List<string> GetRoots()
+		{
+			return _paths
+				.Select(p => GetRoot(p))
+				.Distinct(StringComparer.OrdinalIgnoreCase)
+				.ToList();
+		}
+
+		public List<string> GetChildren( string parent )
+		{
+			parent = Normalize(parent);
+
+			if ( _childrenCache.TryGetValue(parent, out var cached) )
+				return cached;
+
+			int parentLen = parent.Length;
+
+			var children = _paths
+				.Where(p => p.Length > parentLen &&
+							p.StartsWith(parent, StringComparison.OrdinalIgnoreCase))
+				.Select(p =>
+				{
+					var sub = p.Substring(parentLen).TrimStart(Sepalater);
+					var idx = sub.IndexOf(Sepalater);
+					return idx == -1 ? sub : sub.Substring(0, idx);
+				})
+				.Where(s => !string.IsNullOrEmpty(s))
+				.Distinct(StringComparer.OrdinalIgnoreCase)
+				.Select(name => Path.Combine(parent, name))
+				.ToList();
+
+			_childrenCache[parent] = children;
+			return children;
+		}
+
+		#endregion
+
+		#region アイテム取得
+
+		/// <summary>
+		/// 完全一致（そのフォルダ直下）
+		/// </summary>
+		public List<TreeNodeElements> GetItems( string path )
+		{
+			path = Normalize(path);
+			_itemsByPath.TryGetValue(path, out var list);
+			if( list == null )
+			{
+				list = new List<TreeNodeElements>();
+				list.Add(DefaultPattern);
+			}
+			return list;
+		}
+
+		
+
+		/// <summary>
+		/// 配下すべて（旧IndexOf相当）
+		/// </summary>
+		public List<TreeNodeElements> GetItemsRecursive( string path )
+		{
+			path = Normalize(path);
+
+			return _itemsByPath
+				.Where(kv => kv.Key.StartsWith(path, StringComparison.OrdinalIgnoreCase))
+				.SelectMany(kv => kv.Value)
+				.ToList();
+		}
+
+		#endregion
+
+		#region ユーティリティ
+
+		private string Normalize( string path )
+		{
+			return path.TrimEnd(Sepalater);
+		}
+
+		private string GetRoot( string path )
+		{
+
+			int idx = path.IndexOf(Sepalater);
+			if ( idx < 0 )
+				return path; // 区切りなし
+
+			return path.Substring(0, idx);
+
+		}
+
+		public string GetLastSegment(string path )
+		{
+			int idx = Normalize(path).LastIndexOf(Sepalater);
+			if ( idx < 0 )
+				return path;
+
+			return path.Substring(idx + 1);
+		}
+
+		#endregion
+	}
 
 	/// <summary>
 	/// ツリーノード要素
 	/// </summary>
-	public struct TreeNodeElements
+	public class TreeNodeElements
 	{
-		public string strPath;
-		public int nImageIndex;
-		public int nSelectIndex;
-		public Color stForeColor;
+		public string FullPath { get; set; }
+		public Color ForeColor { get; set; }
+		public int ImageIndex { get; set; } 
+		public int SelectImageIndex { get; set; }
+
 
 		/// <summary>
 		/// コンストラクタ
@@ -24,12 +200,141 @@ namespace ControlExtends
 		/// <param name="p_stForeColor"></param>
 		public TreeNodeElements(string p_strPath, int p_nImageIndex, int p_nSelectIndex, Color p_stForeColor)
 		{
-			strPath = p_strPath;
-			nImageIndex = p_nImageIndex;
-			nSelectIndex = p_nSelectIndex;
-			stForeColor = p_stForeColor;
+			FullPath = p_strPath;
+			ImageIndex = p_nImageIndex;
+			SelectImageIndex = p_nSelectIndex;
+			ForeColor = p_stForeColor;
 		}
 	}
+
+	public class TreeViewEx : TreeView
+	{
+		public PathTreeManager Manager { get; set; }
+
+		private CancellationTokenSource _cts;
+
+		public IProgress<ProgressCtrl> Progress { get; set; } = null;
+
+		public bool PreExpand { get; set; } = true; // 予め展開するか？
+
+		public TreeViewEx()
+		{
+			BeforeExpand += OnBeforeExpand;
+		}
+
+		#region 初期化
+
+		public void Initialize()
+		{
+			if ( Manager == null ) return;
+
+			BeginUpdate();
+			try
+			{
+				Nodes.Clear();
+
+				foreach ( var root in Manager.GetRoots() )
+				{
+					Nodes.Add(CreateNode(root));
+				}
+			}
+			finally
+			{
+				EndUpdate();
+			}
+		}
+
+		#endregion
+
+		#region ノード生成
+
+		private TreeNode CreateNode( string fullPath )
+		{
+			var list =  Manager.GetItems(fullPath);
+			TreeNode node= new TreeNode(Manager.GetLastSegment(fullPath))
+			{
+				Tag = fullPath
+			};
+			
+			if(list.Count > 0){
+				var man = list[0];
+				node.ImageIndex = man.ImageIndex;
+				node.SelectedImageIndex = man.SelectImageIndex;
+				node.ForeColor = man.ForeColor;
+			}
+
+			// 子があるか判定
+			if ( Manager.GetChildren(fullPath).Count > 0 )
+			{
+				node.Nodes.Add("dummy");
+			}
+
+			return node;
+		}
+
+		#endregion
+
+		#region 展開
+
+		private async void OnBeforeExpand( object sender, TreeViewCancelEventArgs e )
+		{
+			if ( Manager == null ) return;
+
+			var node = e.Node;
+			var path = (string) node.Tag;
+
+			if ( node.Nodes.Count == 1 && node.Nodes[0].Text == "dummy" )
+			{
+				_cts = new CancellationTokenSource();
+
+				await LoadChildrenAsync(node, path, _cts.Token);
+			}
+		}
+
+		private async Task LoadChildrenAsync( TreeNode node, string path, CancellationToken ct )
+		{
+			node.Nodes.Clear();
+			node.Nodes.Add("Loading...");
+
+			var children = await Task.Run(() =>
+			{
+				return Manager.GetChildren(path);
+			}, ct);
+			ProgressCtrl progressArg = new ProgressCtrl(ProcType.Load);
+			progressArg.TotalFiles = children.Count;
+			BeginUpdate();
+			try
+			{
+				node.Nodes.Clear();
+
+				int count = 0;
+
+				foreach ( var child in children )
+				{
+					ct.ThrowIfCancellationRequested();
+
+					node.Nodes.Add(CreateNode(child));
+					progressArg.Increment(child);
+					Progress?.Report(progressArg);
+					if(PreExpand)
+						node.ExpandAll();
+					if ( ++count % 100 == 0 )
+						await Task.Yield();
+				}
+			}
+			finally
+			{
+				EndUpdate();
+			}
+		}
+
+		#endregion
+
+		public void Cancel() => _cts?.Cancel();
+	}
+
+
+#if false
 
 	/// <summary>
 	/// ツリービューのノードにフルパスでアクセスできるようにする
@@ -202,12 +507,7 @@ namespace ControlExtends
 
 		#endregion
 
-
-
-
-
-
-
-
 	}
+
+#endif
 }

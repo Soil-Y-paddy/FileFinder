@@ -7,7 +7,8 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using win32;
-using ControlExtends;
+using lib;
+using System.Linq;
 namespace FileFinder
 {
 
@@ -32,8 +33,6 @@ namespace FileFinder
 		int m_nSortMax;// 選択可能なソートの種類
 		ProcState stat;
 		FileSearcher m_objFS;
-		List<FileInfo> m_lstSelPathList = new List<FileInfo>();//選択中のセルリスト
-
 		#endregion
 
 		#region コンストラクタ
@@ -50,18 +49,20 @@ namespace FileFinder
 			m_objSetting = Settings.Load();
 
 
-			// リストのカラム幅をリセット(リストの幅に合わせる)
-			lsvResultBox.Columns[0].Width = -2;
-
-
 			// ファイル検索クラス
 			m_objFS = new FileSearcher();
 			m_objFS.Progress += Bgw_ProgressChanged;
 			m_objFS.RunWorkCompleted += Bgw_RunWorkerCompleted;
 
 			// ツリービュー
-			trvDir.AddNodeRangeComplete += TrvDir_AddNodeRangeComplete;
-			trvDir.AddRangeProgress += TrvDir_AddRangeProgress;
+			var dummy = new SortableBindingList<FileViewItem>();
+			dummy.Add(new FileViewItem("dummy",false));
+			dgvResult.DataSource = dummy;
+			dgvResult.ApplyColumnAttribute();
+			dummy.Clear();
+			// 進捗表示
+			trvDir.Progress = new Progress<ProgressCtrl>(TrvDir_AddRangeProgress);
+
 
 			stat = ProcState.Default;
 
@@ -137,38 +138,20 @@ namespace FileFinder
 		/// <summary>
 		/// 検索結果をクリップボードにコピーする
 		/// </summary>
-		private void GetClipboard()
+		private void SetClipboard( string[] list)
 		{
 
-			if (m_objFS.FileResult.Count == 0)
-			{
-				MessageBox.Show("検索結果が0件です。");
-				return;
-			}
-			string[] sts = new string[m_objFS.FileResult.Count];
-			for (int i = 0; i < sts.Length; i++)
-			{
-				sts[i] = m_objFS.FileResult[i].ToString();
-			}
-			Clipboard.SetText(string.Join("\r\n", sts));
-			MessageBox.Show("クリップボードにコピーしました。");
+			Clipboard.SetText(string.Join(Environment.NewLine, list));
+			MessageBox.Show($"{list.Length}行 クリップボードにコピーしました。");
 		}
 
 		/// <summary>
 		/// ソート処理
 		/// </summary>
 		private void SortProc( ) {
-			//if(m_res.Count == 0) return;
-			lblSort.Text = "(" + m_arySortType[m_nSort] + ")";
-
-			FileInfoSorter sorter = new FileInfoSorter(m_nSort);
-			m_lstSelPathList.Sort(sorter);
-			m_objFS.FileResult.Sort(sorter);
-
-			m_nSort = (m_nSort + 1) % m_nSortMax;
-
+			
 			// リストを再描画
-			lsvResultBox.Refresh();
+			dgvResult.Refresh();
 		}
 
 
@@ -215,7 +198,6 @@ namespace FileFinder
 			{
 
 				m_objFS.FileResult.Clear();
-				lsvResultBox.VirtualListSize = 0;
 				trvDir.Nodes.Clear();
 				this.Refresh();
 
@@ -244,7 +226,7 @@ namespace FileFinder
 		#region ラジオボタンリスト
 
 		void RdoSel_SelectedChanged(object sender,EventArgs e) {
-
+			lblTest.Text =$"{rdoSearch.SelectedIndex}";
 			//cmbFile.ComboText = "*";
 		}
 
@@ -301,9 +283,17 @@ namespace FileFinder
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
-		private void BtnClip_Click(object sender,EventArgs e) {
+		private void BtnClip_Click(object sender,EventArgs e) 
+		{
 
-			GetClipboard();
+			if ( m_objFS.FileResult.Count == 0 )
+			{
+				MessageBox.Show("検索結果が0件です。");
+				return;
+			}
+			var sts = m_objFS.FileResult.Select(x => x.FullPath).ToArray();
+
+			SetClipboard(sts);
 		}
 
 
@@ -392,7 +382,7 @@ namespace FileFinder
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
-		private void LsvResult_ColumnClick(object sender,ColumnClickEventArgs e) {
+		private void LsvResult_ColumnClick(object sender,DataGridViewCellEventArgs e) {
 
 			cmbRoot.FIllBoxEnable = false;
 			SortProc();
@@ -412,34 +402,13 @@ namespace FileFinder
 
 
 		/// <summary>
-		/// リストビューの仮想化
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		private void LsvResult_RetrieveVirtualItem(object sender,RetrieveVirtualItemEventArgs e) {
-
-			if (e.ItemIndex < m_lstSelPathList.Count)
-			{
-				if (e.Item == null)
-				{
-					e.Item = new ListViewItem();
-				}
-				e.Item.Text = m_lstSelPathList[e.ItemIndex].strPath;
-				e.Item.ImageIndex = m_lstSelPathList[e.ItemIndex].TypeI;
-			}
-
-		}
-
-
-		/// <summary>
 		/// リストのサイズが変わった時、リフレッシュ
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
 		private void LsResult_Resize(object sender,EventArgs e) {
 
-			lsvResultBox.Columns[0].Width = -2;
-			lsvResultBox.Refresh();
+			dgvResult.Refresh();
 
 		}
 
@@ -489,8 +458,15 @@ namespace FileFinder
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
-		private void MnuPathCopy_Click(object sender,EventArgs e) {
-			Clipboard.SetText(m_lstSelPathList[lsvResultBox.SelectedIndices[0]].ToString());
+		private void MnuPathCopy_Click( object sender, EventArgs e )
+		{
+
+			var select = dgvResult.GetSelectedItems<FileViewItem>();
+			if ( select.Count > 0 )
+			{
+				var lst = select.Select(x => x.FullPath).ToArray();
+				SetClipboard(lst);
+			}
 		}
 
 		/// <summary>
@@ -498,8 +474,15 @@ namespace FileFinder
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
-		private void MnuOpenFile_Click(object sender,EventArgs e) {
-			Process.Start(m_lstSelPathList[lsvResultBox.SelectedIndices[0]].ToString());
+		private void MnuOpenFile_Click( object sender, EventArgs e )
+		{
+
+			var select = dgvResult.GetSelectedItems<FileViewItem>();
+			if ( select.Count > 0 )
+			{
+				string path = select[0].FullPath;
+				Process.Start(path);
+			}
 		}
 
 		/// <summary>
@@ -508,8 +491,13 @@ namespace FileFinder
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
 		private void MnuFileProperty_Click(object sender,EventArgs e) {
-			string path = m_lstSelPathList[lsvResultBox.SelectedIndices[0]].ToString();
-			Win32Api.SHObjectProperties(IntPtr.Zero, Win32Api.SHOP_FILEPATH, path, string.Empty);
+
+			var select = dgvResult.GetSelectedItems<FileViewItem>();
+			if ( select.Count > 0 )
+			{
+				string path = select[0].FullPath;
+				Win32Api.SHObjectProperties(IntPtr.Zero, Win32Api.SHOP_FILEPATH, path, string.Empty);
+			}
 		}
 
 
@@ -520,8 +508,12 @@ namespace FileFinder
 		/// <param name="e"></param>
 		private void MnuOpenFolder_Click(object sender,EventArgs e) {
 
-			string path = m_lstSelPathList[lsvResultBox.SelectedIndices[0]].ToString();
-			Process.Start(Path.GetDirectoryName(path));
+			var select = dgvResult.GetSelectedItems<FileViewItem>();
+			if ( select.Count > 0 )
+			{
+				string path = select[0].FullPath;
+				Process.Start(Path.GetDirectoryName(path));
+			}
 		}
 
 
@@ -534,36 +526,26 @@ namespace FileFinder
 
 		{
 			TreeNode selNode = trvDir.SelectedNode;
-			lsvResultBox.Items.Clear();
 
 			// 全件表示
 			if (selNode.Text == strROOT.Trim('\\'))
 			{
-				m_lstSelPathList = new List<FileInfo>(m_objFS.FileResult);
+				dgvResult.DataSource = m_objFS.FileResult;
+				dgvResult.ApplyColumnAttribute();
 				lblResult.Text = string.Format("検索結果 {0}件", m_objFS.FileResult.Count);
 
 			}
 			else
 			{
 				string strPath = selNode.FullPath.Replace(strROOT, cmbRoot.ComboText);
-				m_lstSelPathList.Clear();
 				// 該当フォルダにぶら下がってる検索結果をリストアップ
-				foreach (FileInfo info in m_objFS.FileResult)
-				{
-					if (info.strPath.IndexOf(strPath) == 0)
-					{
-						m_lstSelPathList.Add(info);
+				var reslut = m_objFS.FileResult.Where(x => x.FullPath.IndexOf(strPath) == 0).ToList();
+				dgvResult.DataSource = new SortableBindingList<FileViewItem>( reslut );
+				dgvResult.ApplyColumnAttribute();
 
-					}
-				}
-				lblResult.Text = string.Format("検索結果 選択フォルダ内: {0}/{1}件", m_lstSelPathList.Count, m_objFS.FileResult.Count);
+				lblResult.Text = string.Format("検索結果 選択フォルダ内: {0}/{1}件", reslut.Count(), m_objFS.FileResult.Count);
 			}
 
-			lsvResultBox.VirtualListSize = m_lstSelPathList.Count;
-			if (lsvResultBox.Columns.Count > 0)
-			{
-				lsvResultBox.Columns[0].Width = -2;
-			}
 			this.Refresh();
 
 		}
@@ -617,35 +599,26 @@ namespace FileFinder
 					trvDir.Visible = false;
 					trvDir.SuspendLayout();
 					Refresh();
-					TreeNodeElements[] aryNodeElm = new TreeNodeElements[m_objFS.FolderResult.Count];
+					var node = new TreeNodeElements("", 0, 2, SystemColors.ControlText);
+					var pathManager = new PathTreeManager(node);
 					for(int nCnt = 0; nCnt < m_objFS.FolderResult.Count; nCnt++)
 					{
 						DirInfo objDirInfo = m_objFS.FolderResult[nCnt];
 						string strRefPath = objDirInfo.strPath.Replace(cmbRoot.ComboText, strROOT);
-						aryNodeElm[nCnt] = new TreeNodeElements(strRefPath, 0, 2,
-								(objDirInfo.bIsSeach) ? Color.Blue : SystemColors.ControlText);
+						node = new TreeNodeElements(strRefPath, 0, 2,
+							   ( objDirInfo.bIsSeach ) ? Color.Blue : SystemColors.ControlText);
+						pathManager.Add(node);
 					}
-					prgTreeCreate.Maximum = aryNodeElm.Length;
-					trvDir.AddNodeRange(aryNodeElm);
+					prgTreeCreate.Maximum =pathManager.Count;
+					trvDir.Manager = pathManager;
 
-					/*
-					// フォルダツリーを作成
-					foreach(DirInfo dirInfo in m_objFS.FolderResult)
-					{
-						string strRefPath = dirInfo.strPath.Replace(cmbRoot.ComboText, strROOT);
-						TreeNode node= trvDir.AddNode(strRefPath, 0, 2);
-						if (dirInfo.bIsSeach)
-						{
-							node.ForeColor = Color.Blue;
-						}
-					}
-					trvDir.ResumeLayout();
+					trvDir.Initialize();
 					trvDir.Visible = true;
+					TrvDir_AddNodeRangeComplete(sender, e);
 
-					trvDir.SelectedNode = trvDir.FindNode(strROOT);
-					trvDir.Select();
-					DebugWrite("End");
-					*/
+					dgvResult.DataSource = m_objFS.FileResult;
+					dgvResult.ApplyColumnAttribute();
+
 
 				}
 				catch (Exception exp1)
@@ -674,9 +647,10 @@ namespace FileFinder
 		}
 
 		// ツリービューノード追加進捗
-		private void TrvDir_AddRangeProgress(object sender, ProgressChangedEventArgs e)
+		private void TrvDir_AddRangeProgress(ProgressCtrl ctrl)
 		{
-			prgTreeCreate.Value = e.ProgressPercentage;
+			prgTreeCreate.Maximum = ctrl.TotalFiles;
+			prgTreeCreate.Value = ctrl.ProcessedCount;
 		}
 
 		// ツリービューノード追加完了後処理
@@ -689,6 +663,7 @@ namespace FileFinder
 				trvDir.SelectedNode = trvDir.Nodes[0];
 				trvDir.Select();
 			}
+			trvDir.ExpandAll();
 			DebugWrite("End");
 
 		}

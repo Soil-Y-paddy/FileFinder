@@ -1,4 +1,4 @@
-﻿namespace ControlExtends
+﻿namespace lib
 {
 	partial class ComboHistoryAndFill
 	{
