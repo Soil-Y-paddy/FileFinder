@@ -84,6 +84,17 @@ namespace FileFinder
 			this.Size = m_objSetting.m_stWindowRect.Size;
 			splitContainer1.SplitterDistance = m_objSetting.m_nSplitDistance;
 
+			// 設定値が画面外に出ている場合調整する
+			if ( this.WindowState == FormWindowState.Normal )
+			{
+				var rect = Screen.GetBounds(this);
+				this.Left = ( rect.Left + rect.Width > this.Left + this.Width ) ? this.Left : rect.Left + rect.Width - this.Width;
+				this.Left = ( rect.Left < this.Left ) ? this.Left : rect.Left;
+				this.Top = ( rect.Top + rect.Height > this.Top + this.Height ) ? this.Top : rect.Top + rect.Height - this.Height;
+				this.Top = ( rect.Top < this.Top ) ? this.Top : rect.Top;
+			}
+
+
 		}
 
 		/// <summary>
