@@ -71,13 +71,37 @@ namespace lib
 		/// <returns></returns>
 		public int Increment()
 		{
-
 			return Interlocked.Increment(ref _Count);
 		}
+
+
 		public int Increment(string fileName )
 		{
 			CurrentFile = fileName;
-			return Interlocked.Increment(ref _Count);
+			return Increment();
+		}
+
+
+		public int Add( int count )
+		{
+			return Interlocked.Add(ref _Count, count);
+		}
+
+		public int Add(int count, string fileName )
+		{
+			CurrentFile = fileName;
+			return Add(count);
+		}
+
+		public int Set(int count )
+		{
+			return Interlocked.Exchange(ref _Count, count);
+		}
+
+		public int Set(int count, string filename )
+		{
+			CurrentFile = filename;
+			return Set(count);
 		}
 
 		/// <summary>

@@ -29,18 +29,13 @@ namespace lib
 				if ( prop == null ) continue;
 
 				var displayAttr = prop.GetCustomAttributes(typeof(DisplayAttribute), true)
-									  .Cast<DisplayAttribute>()
-									  .FirstOrDefault();
+									  .Cast<DisplayAttribute>().FirstOrDefault();
 				var browsableAttr = prop.GetCustomAttributes(typeof(BrowsableAttribute), true)
-										.Cast<BrowsableAttribute>()
-										.FirstOrDefault();
+										.Cast<BrowsableAttribute>().FirstOrDefault();
 				var widthAttr = prop.GetCustomAttributes(typeof(ColumnWidthAttribute), true)
-									.Cast<ColumnWidthAttribute>()
-									.FirstOrDefault();
-
+									.Cast<ColumnWidthAttribute>().FirstOrDefault();
 				var iconOptionAttr = prop.GetCustomAttributes(typeof(IconOptionAttribute), true)
-									.Cast<IconOptionAttribute>()
-									.FirstOrDefault();
+									.Cast<IconOptionAttribute>().FirstOrDefault();
 
 				if ( displayAttr != null )
 				{

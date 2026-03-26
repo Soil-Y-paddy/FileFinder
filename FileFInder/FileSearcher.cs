@@ -5,6 +5,8 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using lib;
@@ -153,223 +155,227 @@ namespace FileFinder
 
 	#endregion
 
-	#region ファイル検索主クラス
+	#region enum
+
+
+	public enum SearchType
+	{
+		FileOnly = 0,
+		FolderOnly = 1,
+		Both = 2
+	}
+
+	#endregion
+
+	#region ファイル検索条件
+
+	class FileSearchInfo
+	{
+		public string FilePattern { get; set; } // 検索条件
+		public string Root { get; set; } // 検索ルート
+		public SearchType SearchType { get; set; } // 検索範囲
+		public bool SubDir { get; set; } // サブフォルダも探索する
+	}
+
+	#endregion
+
+	#region ファイル検索主クラス(async版)
+
 	class FileSearcher
 	{
 
 		#region メンバ変数
 
-		BackgroundWorker m_bgwWk1;// 別スレッドでファイル検索
-		string m_strFilePattern; // 検索条件
-		string m_strRoot;　// 検索のルートパス
-		int m_nType; // 0:ファイル名 / 1:フォルダ名 / 2:ファイル・フォルダ両方
-		bool m_bSub; // サブフォルダも検索する場合true
+		ConcurrentBag<FileViewItem> m_lstFiles; // (並列処理対応版)ファイル一覧
+		ConcurrentBag<DirInfo> m_lstDirs; // (並列処理対応版) フォルダ一覧
 
-		SortableBindingList<FileViewItem> m_lstResult = new SortableBindingList<FileViewItem>(); //検索結果ファイルリスト
-		ConcurrentBag<DirInfo> m_lstFolder = new ConcurrentBag<DirInfo>(); // 検索結果フォルダリスト
+		CancellationTokenSource m_CancellationSource = null;
+		CancellationToken m_token;
 
-		#endregion
-
-		#region 外部イベント
-
-		public event RunWorkerCompletedEventHandler RunWorkCompleted;
-
-		public event ProgressChangedEventHandler Progress;
+		int m_nSearchCount; // Searchメソッドの探索回数
 
 		#endregion
 
 		#region プロパティ
 
+		public string ExceptionMsg { get; private set; } = "";
 
-		/// <summary>
-		/// 実行中に例外が発生した時、そのメッセージ
-		/// </summary>
-		public string ExceptionMsg{get; set;}
+		public IProgress<ProgressCtrl> Progress { get; set; }
 
-		/// <summary>
-		/// キャンセル通知
-		/// </summary>
-		public bool Cancel{get; set;}
 
-		/// <summary>
-		/// 現在探索中のパスを取得する
-		/// </summary>
-		public string NowPath{get; set;}
+		public int FileCount => m_lstFiles.Count;
 
-		/// <summary>
-		/// 検索結果のファイルリスト
-		/// </summary>
-		public SortableBindingList<FileViewItem> FileResult
-		{
-			get
-			{
-				return m_lstResult;
-			}
-		}
+		public SortableBindingList<FileViewItem> FileResult => new SortableBindingList<FileViewItem>( m_lstFiles.ToList());
+		public SortableBindingList<DirInfo> FolderResult => new SortableBindingList<DirInfo>( m_lstDirs.ToList());
 
-		/// <summary>
-		/// 検索結果のフォルダリスト
-		/// </summary>
-		public SortableBindingList<DirInfo> FolderResult
-		{
-			get
-			{
-				return new SortableBindingList<DirInfo>( m_lstFolder.ToList());
-			}
-		}
+		public bool IsCanceled { get; private set; }
 
 		#endregion
 
-		#region コンストラクタ
-
-		public FileSearcher()
-		{
-			m_bgwWk1 = new BackgroundWorker()
-			{
-				WorkerSupportsCancellation = true,
-				WorkerReportsProgress = true
-			};
-			m_bgwWk1.DoWork += Bgw_DoWork;
-			m_bgwWk1.RunWorkerCompleted += Bgw_RunWorkerCompleted;
-			m_bgwWk1.ProgressChanged += Bgw_ProgressChanged;
-
-		}
-
-		#endregion
-
-
-		#region メソッド
 		/// <summary>
-		/// 実行
+		/// 非同期での検索を開始します。
 		/// </summary>
-		/// <param name="p_strRoot">ルートパス</param>
-		/// <param name="p_strFile">検索名</param>
-		/// <param name="p_nType">種類(0:両方 , 1:ファイルのみ , 2:フォルダのみ)</param>
-		/// <param name="p_blSub">サブフォルダも検索するときtrue</param>
-		public void Execute(string p_strRoot, string p_strFile, int p_nType, bool p_blSub)
-		{
-			m_strRoot = p_strRoot;
-			m_strFilePattern = p_strFile;
-			m_nType = p_nType;
-			m_bSub = p_blSub;
-
-			Cancel = false;
-			m_lstResult= new SortableBindingList<FileViewItem>();
-			m_lstFolder = new ConcurrentBag<DirInfo>();
-			ExceptionMsg = "";
-			NowPath = "";
-			m_bgwWk1.RunWorkerAsync();
-		}
-
-
-		/// <summary>
-		/// フォルダを再帰的に探索していく
-		/// </summary>
-		/// <param name="p_strRootPath"></param>
-		/// <param name="p_lstFileInfos"></param>
+		/// <param name="p_strRoot">ルートフォルダ</param>
+		/// <param name="p_strPattern">検索パターン</param>
+		/// <param name="p_eType">検索範囲</param>
+		/// <param name="sub">サブフォルダも検索する</param>
 		/// <returns></returns>
-		private FileViewItem[] GetList(string p_strRootPath, ConcurrentBag<FileViewItem> p_lstFileInfos = null)
-
+		public async Task<bool> ExecuteAsync( FileSearchInfo p_objInfo )
 		{
-			bool bFind = false;
-			if (p_lstFileInfos == null)
+
+			m_lstFiles = new ConcurrentBag<FileViewItem>();
+			m_lstDirs = new ConcurrentBag<DirInfo>();
+			var objCtrl = new ProgressCtrl(ProcType.Load);
+
+			IsCanceled = false;
+
+			if ( m_CancellationSource != null )
 			{
-				p_lstFileInfos = new ConcurrentBag<FileViewItem>();
+				m_CancellationSource.Cancel();
+				m_CancellationSource.Dispose();
 			}
-			if (!Cancel)
+			m_CancellationSource = new CancellationTokenSource();
+			m_token = m_CancellationSource.Token;
+
+			ExceptionMsg = "";
+			
+			await Task.Run(() => Search(p_objInfo.Root, p_objInfo, objCtrl), m_token);
+
+			m_CancellationSource.Dispose();
+			m_CancellationSource = null;
+
+			return true;
+		}
+
+		/// <summary>
+		/// 非同期で実行中の検索処理をキャンセルします
+		/// </summary>
+		public void Cancel()
+		{
+			if ( m_CancellationSource != null )
 			{
-				// 検索中の情報を外部に伝える
-				NowPath = p_strRootPath;
-				//m_lstFolder.Add(root);
-				try
+				m_CancellationSource.Cancel();
+			}
+			IsCanceled = true;
+		}
+
+		/// <summary>
+		/// 検索本体
+		/// </summary>
+		/// <param name="p_strPath"></param>
+		private void Search( string p_strPath, FileSearchInfo p_objSInfo, ProgressCtrl p_pgCtrl )
+		{
+			try
+			{
+
+				m_token.ThrowIfCancellationRequested();
+				Interlocked.Increment(ref m_nSearchCount);
+
+				bool found = false;
+
+				// ファイルを検索する
+				if ( p_objSInfo.SearchType == SearchType.FileOnly || p_objSInfo.SearchType == SearchType.Both )
 				{
-					// ファイル検索
-					if (m_nType == 0 || m_nType == 2)
-					{
+					var files = Directory.GetFiles(p_strPath, p_objSInfo.FilePattern);
 
-						var files = Directory.GetFiles(p_strRootPath, m_strFilePattern);
-						if(files.Length > 0)
+					if ( files.Length > 0 )
+						found = true;
+					/*
+					Parallel.ForEach(files, file =>
+					{
+						try
 						{
-							bFind = true;
+							m_token.ThrowIfCancellationRequested();
+							m_lstFiles.Add(new FileViewItem(file, false));
 						}
-						Parallel.ForEach(files, file =>
+						catch ( Exception ex )
 						{
-							p_lstFileInfos.Add(new FileViewItem(file, false));
-						});
-					}
+							ExceptionMsg += file + ":"+ex.Message + Environment.NewLine;
+						}
+					});
+					*/
+					foreach ( var file in files )
+					{
+						m_token.ThrowIfCancellationRequested();
+						m_lstFiles.Add(new FileViewItem(file, false));
 
-					// フォルダ検索
-					if (m_nType == 1 || m_nType == 2)
-					{
-						var dirs = Directory.GetDirectories(p_strRootPath, m_strFilePattern);
-						Parallel.ForEach(dirs, dir =>
-						{
-							p_lstFileInfos.Add(new FileViewItem(dir, true));
-							m_lstFolder.Add(new DirInfo(dir, true));
-						});
 					}
-					if (bFind)
+				}
+				// フォルダを検索する
+				if ( p_objSInfo.SearchType == SearchType.FolderOnly || p_objSInfo.SearchType == SearchType.Both )
+				{
+					var dirs = Directory.GetDirectories(p_strPath, p_objSInfo.FilePattern);
+					/*
+					Parallel.ForEach(dirs, dir =>
 					{
-						DirInfo info = new DirInfo(p_strRootPath, false);
-						if (!m_lstFolder.Contains(info))
+						try
 						{
-							m_lstFolder.Add(info);
+							m_token.ThrowIfCancellationRequested();
+							m_lstFiles.Add(new FileViewItem(dir, true));
+							m_lstDirs.Add(new DirInfo(dir, true));
+						}
+						catch ( Exception ex )
+						{
+							ExceptionMsg += dir + ":"+ ex.Message + Environment.NewLine;
 						}
 
-					}
-					if (m_bSub)
+					});
+					*/
+					foreach( var dir in dirs )
 					{
-						// サブフォルダを検索する
-						var dirs = Directory.GetDirectories(p_strRootPath);
-						/*
-						Parallel.ForEach(dirs, dir =>
-						{
-							string dis = Path.Combine(p_strRootPath, dir);
-							GetList(dis, p_lstFileInfos);
-						});
-						*/
-						foreach ( var dir in dirs )
-						{
-							string dis = Path.Combine(p_strRootPath, dir);
-							GetList(dis, p_lstFileInfos);
-						}
-					}
+						m_token.ThrowIfCancellationRequested();
+						m_lstFiles.Add(new FileViewItem(dir, true));
+						m_lstDirs.Add(new DirInfo(dir, true));
 
+					}
+				}
+
+				// ファイル検索結果のフォルダを設定
+				if ( found )
+				{
+					var dirInfo = new DirInfo(p_strPath, false);
+					if ( !m_lstDirs.Contains(dirInfo) )
+						m_lstDirs.Add(dirInfo);
+				}
+				// サブフォルダを探索する(再帰呼び出し)
+				if ( p_objSInfo.SubDir )
+				{
+					var dirs = Directory.GetDirectories(p_strPath);
+					/*
+					foreach ( var dir in dirs )
+					{
+						m_token.ThrowIfCancellationRequested();
+						Search(dir);
+					}
+					*/
+					Parallel.ForEach(dirs, dir =>
+					{
+						try
+						{
+							m_token.ThrowIfCancellationRequested();
+							Search(dir, p_objSInfo, p_pgCtrl);
+						}
+						catch ( Exception ex )
+						{
+							ExceptionMsg += dir+":"+ex.Message + Environment.NewLine;
+						}
+					});
 
 				}
-				catch (Exception ex)
+
+				if ( m_nSearchCount % 10 == 0 )
 				{
-					ExceptionMsg += ex.Message + "\r\n";
+					p_pgCtrl.Set(m_lstDirs.Count, p_strPath);
+					Progress?.Report(p_pgCtrl);
 				}
-				m_bgwWk1.ReportProgress(p_lstFileInfos.Count);
+
 			}
-			return p_lstFileInfos.ToArray();
+			catch ( Exception ex )
+			{
+				ExceptionMsg += ex.Message + Environment.NewLine;
+			}
 		}
-
-		#endregion
-
-		#region 非同期イベント
-
-		private void Bgw_ProgressChanged(object sender, ProgressChangedEventArgs e)
-		{
-			Progress?.Invoke(this, e);
-		}
-
-		private void Bgw_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-		{
-			RunWorkCompleted?.Invoke(this, e);
-		}
-
-		private void Bgw_DoWork(object sender, DoWorkEventArgs e)
-
-		{
-			m_lstResult.AddRange(GetList(m_strRoot));// ファイル探索
-
-		}
-
-		#endregion
 	}
-
 
 	#endregion
 

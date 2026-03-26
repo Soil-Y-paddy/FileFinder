@@ -1,14 +1,13 @@
-﻿using System;
+﻿using lib;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Windows.Forms;
-using win32;
-using lib;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
 namespace FileFinder
 {
 
@@ -28,11 +27,9 @@ namespace FileFinder
 		#region メンバ変数
 
 		Settings m_objSetting;   // 設定クラス
-		int m_nSort;             // ソート状態
-		string[] m_arySortType = new string[4] { "名前順", "名前逆順", "種類順", "種類逆順" }; // ソートの種類
-		int m_nSortMax;// 選択可能なソートの種類
 		ProcState stat;
 		FileSearcher m_objFS;
+		bool m_selFromList = false;
 		#endregion
 
 		#region コンストラクタ
@@ -41,8 +38,6 @@ namespace FileFinder
 			InitializeComponent();
 
 			// 各メンバーの初期化
-			m_nSort = 0;
-			m_nSortMax = m_arySortType.Length;
 			rdoSearch.Images = imgRadioIco;
 
 			// 設定情報を読み込む
@@ -51,8 +46,7 @@ namespace FileFinder
 
 			// ファイル検索クラス
 			m_objFS = new FileSearcher();
-			m_objFS.Progress += Bgw_ProgressChanged;
-			m_objFS.RunWorkCompleted += Bgw_RunWorkerCompleted;
+			m_objFS.Progress = new Progress<ProgressCtrl>(ProgressChanged);
 
 			// ツリービュー
 			var dummy = new SortableBindingList<FileViewItem>();
@@ -61,7 +55,7 @@ namespace FileFinder
 			dgvResult.ApplyColumnAttribute();
 			dummy.Clear();
 			// 進捗表示
-			trvDir.Progress = new Progress<ProgressCtrl>(TrvDir_AddRangeProgress);
+			trvDir.Progress = new Progress<ProgressCtrl>(ProgressTreeView);
 
 
 			stat = ProcState.Default;
@@ -145,15 +139,6 @@ namespace FileFinder
 			MessageBox.Show($"{list.Length}行 クリップボードにコピーしました。");
 		}
 
-		/// <summary>
-		/// ソート処理
-		/// </summary>
-		private void SortProc( ) {
-			
-			// リストを再描画
-			dgvResult.Refresh();
-		}
-
 
 		#endregion
 
@@ -162,7 +147,7 @@ namespace FileFinder
 		/// <summary>
 		/// 検索の主実行
 		/// </summary>
-		private bool SearchExec( ) {
+		private async Task<bool> SearchExec( ) {
 
 			bool bRetVal = true;
 			// ルートパスが空の時
@@ -196,14 +181,24 @@ namespace FileFinder
 
 			if (bRetVal)
 			{
-
-				m_objFS.FileResult.Clear();
 				trvDir.Nodes.Clear();
 				this.Refresh();
 
-				// 実行
-				m_objFS.Execute(cmbRoot.ComboText, cmbKey.ComboText, rdoSearch.SelectedIndex, chkSubDir.Checked);
 				pWait.Visible = true;
+
+				// 実行
+				var searchInfo = new FileSearchInfo()
+				{
+					Root = cmbRoot.ComboText,
+					FilePattern = cmbKey.ComboText,
+					SearchType = (SearchType) rdoSearch.SelectedIndex,
+					SubDir = chkSubDir.Checked,
+				};
+				var result = await m_objFS.ExecuteAsync(searchInfo);
+
+				pWait.Visible = false;
+				// 後処理
+				await RunCompleted();
 
 			}
 			return bRetVal;
@@ -214,11 +209,6 @@ namespace FileFinder
 
 		#endregion
 
-		#region リストのソート
-
-
-		#endregion
-
 		#endregion
 
 		#region イベント
@@ -226,7 +216,6 @@ namespace FileFinder
 		#region ラジオボタンリスト
 
 		void RdoSel_SelectedChanged(object sender,EventArgs e) {
-			lblTest.Text =$"{rdoSearch.SelectedIndex}";
 			//cmbFile.ComboText = "*";
 		}
 
@@ -253,25 +242,44 @@ namespace FileFinder
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
-		private void BtnSearch_Click(object sender,EventArgs e) {
+		private async void BtnSearch_Click(object sender,EventArgs e) {
 
 			switch (stat)
 			{
 				case ProcState.Default:
 					cmbRoot.ComboText = cmbRoot.ComboText.Trim('\\') + "\\";
 					cmbRoot.FIllBoxEnable = false;
-					if (SearchExec())
+
+					// フラグ更新
+					stat = ProcState.Execute;
+					btnSearch.Text = "中止";
+					btnClip.Enabled = false;
+					btnError.Visible = false;
+					try
 					{
-						stat = ProcState.Execute;
-						btnSearch.Text = "中止";
-						btnClip.Enabled = false;
-						btnError.Visible = false;
+						// 非同期待ち
+						await SearchExec();
 					}
+					catch ( OperationCanceledException )
+					{
+					}
+					finally
+					{
+						btnClip.Enabled = true;
+						pnl.Enabled = true;
+						btnSearch.Text = "検索";
+						btnSearch.Enabled = true;
+						cmbRoot.FIllBoxEnable = true;
+						stat = ProcState.Default;
+
+					}
+
 					break;
 				case ProcState.Execute:
 					btnSearch.Enabled = false;
 					btnSearch.Text = "中止中...";
-					m_objFS.Cancel = true;
+
+					m_objFS.Cancel();
 					stat = ProcState.Canceling;
 					break;
 			}
@@ -286,7 +294,7 @@ namespace FileFinder
 		private void BtnClip_Click(object sender,EventArgs e) 
 		{
 
-			if ( m_objFS.FileResult.Count == 0 )
+			if ( m_objFS.FileCount == 0 )
 			{
 				MessageBox.Show("検索結果が0件です。");
 				return;
@@ -354,7 +362,11 @@ namespace FileFinder
 		private void Form1_FormClosing(object sender,FormClosingEventArgs e) {
 
 			// キャンセル処理
-			m_objFS.Cancel = true;
+			m_objFS.Cancel();
+
+			// datagridviewとtreeviewのクリア
+			dgvResult.DataSource = null;
+			trvDir.Nodes.Clear();
 
 			// フォームを閉じる前にセーブする
 			SaveSetting();
@@ -376,49 +388,12 @@ namespace FileFinder
 
 		#region リスト
 
-
-		/// <summary>
-		/// リストのカラム
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		private void LsvResult_ColumnClick(object sender,DataGridViewCellEventArgs e) {
-
-			cmbRoot.FIllBoxEnable = false;
-			SortProc();
-			cmbRoot.FIllBoxEnable = true;
-		}
-
-
-		/// <summary>
-		/// ソート
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		private void LblSort_Click(object sender,EventArgs e) {
-
-			SortProc();
-		}
-
-
-		/// <summary>
-		/// リストのサイズが変わった時、リフレッシュ
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		private void LsResult_Resize(object sender,EventArgs e) {
-
-			dgvResult.Refresh();
-
-		}
-
-
 		/// <summary>
 		/// リストの行をクリックした時
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
-		private void LsvResult_MouseClick(object sender,MouseEventArgs e) {
+		private void dgvResult_MouseClick(object sender,MouseEventArgs e) {
 
 			cmbRoot.FIllBoxEnable = false;
 			// 右クリックした時、メニューを開く
@@ -426,32 +401,32 @@ namespace FileFinder
 				this.listMenu.Show(MousePosition);
 			}
 			cmbRoot.FIllBoxEnable = true;
+			var sel = dgvResult.GetSelectedItems<FileViewItem>();
+			searching.Text = "選択：" + ( ( sel.Count == 1 ) ? sel[0].FullPath : $"{sel.Count}個");
+			// 1個の場合、選択中のパスをツリーで選択
+			if ( sel.Count == 1 )
+			{
+				m_selFromList = true;
+				var path = Path.GetDirectoryName(sel[0].FullPath).Replace(cmbRoot.ComboText, strROOT);
+				var tool = trvDir.FindNode(path);
+				trvDir.SelectedNode = tool;
+				m_selFromList = false;
+			}
 		}
-
-
+		
 		/// <summary>
-		/// リスト領域をクリックした時
+		/// リストをダブルクリックしたとき
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
-		private void LsvResult_MouseDown(object sender,MouseEventArgs e) {
+		private void dgvResult_DoubleClick(object sender,EventArgs e) {
 
-			cmbRoot.FIllBoxEnable = false;
-			cmbRoot.FIllBoxEnable = true;
-
-
+			MnuOpenFile_Click(sender,e);
 		}
 
 		#endregion
 
-		#region リストのクリックメニュー
-
-
-
-		private void LsvResult_DoubleClick(object sender,EventArgs e) {
-
-			MnuOpenFile_Click(sender,e);
-		}
+		#region メニュー
 
 		/// <summary>
 		/// 選択されたファイパスのみコピー
@@ -523,29 +498,24 @@ namespace FileFinder
 
 		//フォルダツリーが選択された時
 		private void TrvDir_AfterSelect(object sender, TreeViewEventArgs e)
-
 		{
+
+			// リストから選択された場合、リストの更新をしない。
+			if(m_selFromList)
+				return;
+
 			TreeNode selNode = trvDir.SelectedNode;
 
 			// 全件表示
-			if (selNode.Text == strROOT.Trim('\\'))
+			string strPath = "";
+			// 指定フォルダ？
+			if( selNode.Text != strROOT.Trim('\\') )
 			{
-				dgvResult.DataSource = m_objFS.FileResult;
-				dgvResult.ApplyColumnAttribute();
-				lblResult.Text = string.Format("検索結果 {0}件", m_objFS.FileResult.Count);
+				strPath = selNode.FullPath.Replace(strROOT, cmbRoot.ComboText);
 
 			}
-			else
-			{
-				string strPath = selNode.FullPath.Replace(strROOT, cmbRoot.ComboText);
-				// 該当フォルダにぶら下がってる検索結果をリストアップ
-				var reslut = m_objFS.FileResult.Where(x => x.FullPath.IndexOf(strPath) == 0).ToList();
-				dgvResult.DataSource = new SortableBindingList<FileViewItem>( reslut );
-				dgvResult.ApplyColumnAttribute();
-
-				lblResult.Text = string.Format("検索結果 選択フォルダ内: {0}/{1}件", reslut.Count(), m_objFS.FileResult.Count);
-			}
-
+			SetDataToDgv(strPath);
+			searching.Text ="フォルダ:"+selNode.FullPath.Replace(strROOT, cmbRoot.ComboText);
 			this.Refresh();
 
 		}
@@ -556,24 +526,24 @@ namespace FileFinder
 		#region 実行結果と実行中の表示処理
 
 		// ファイル検索の進捗
-		private void Bgw_ProgressChanged(object sender,System.ComponentModel.ProgressChangedEventArgs e) {
+		private void ProgressChanged(ProgressCtrl progress) {
 
 			
-			string[] temp = m_objFS.NowPath.Split("\\".ToCharArray());
-			int len=m_objFS.NowPath.Length;
+			string[] temp = progress.CurrentFile.Split("\\".ToCharArray());
+			int len= progress.CurrentFile.Length;
 			for(int i = 0; i < temp.Length-1; i++) {
 				len -=(temp[i].Length - 2);
 				temp[i] = "..";
-				if(len < 50) return;
+				if(len < 50) break;
 			}
 			searching.Text = string.Join("\\",temp); //Path.GetFileName(m_FS.nowPath);	
-			lblResult.Text=string.Format("検索中... {0}件",e.ProgressPercentage);
+			lblResult.Text=string.Format("検索中... {0:N0}件",progress.ProcessedCount);
 		}
 
 		// ファイル検索完了後処理
-		private void Bgw_RunWorkerCompleted(object sender,System.ComponentModel.RunWorkerCompletedEventArgs e) {
+		private async Task RunCompleted() {
 
-			string strCancelMsg = "結果";
+			string strCancelMsg = "検索結果";
 			pWait.Visible = false;
 
 			if(m_objFS.ExceptionMsg != "") {
@@ -582,103 +552,105 @@ namespace FileFinder
 				//MessageBox.Show("実行中エラーが発生しました\n" + m_FS.ExeptionMsg);
 			}
 
-			if(!e.Cancelled)
+			try
 			{
+				await TreeViewUpdate();
 
-				m_nSort = 0;
-				// 検索対象が、どちらか一方の時は、名前のみソート
-				if(rdoSearch.SelectedIndex != 2) m_nSortMax = 2;
-				// 両方の時は、種類順のソート
-				else m_nSortMax = 4;
 
-				try
+				if ( m_objFS.IsCanceled )
 				{
-					//trvDir.AddNode(strROOT,3,3);
-
-					DebugWrite("Start");
-					trvDir.Visible = false;
-					trvDir.SuspendLayout();
-					Refresh();
-					var node = new TreeNodeElements("", 0, 2, SystemColors.ControlText);
-					var pathManager = new PathTreeManager(node);
-					for(int nCnt = 0; nCnt < m_objFS.FolderResult.Count; nCnt++)
-					{
-						DirInfo objDirInfo = m_objFS.FolderResult[nCnt];
-						string strRefPath = objDirInfo.strPath.Replace(cmbRoot.ComboText, strROOT);
-						node = new TreeNodeElements(strRefPath, 0, 2,
-							   ( objDirInfo.bIsSeach ) ? Color.Blue : SystemColors.ControlText);
-						pathManager.Add(node);
-					}
-					prgTreeCreate.Maximum =pathManager.Count;
-					trvDir.Manager = pathManager;
-
-					trvDir.Initialize();
-					trvDir.Visible = true;
-					TrvDir_AddNodeRangeComplete(sender, e);
-
-					dgvResult.DataSource = m_objFS.FileResult;
-					dgvResult.ApplyColumnAttribute();
-
-
+					strCancelMsg = "検索 [中断]";
 				}
-				catch (Exception exp1)
-				{
-					MessageBox.Show(exp1.Message);
-				}
-				this.Refresh();
-				SortProc();
+				SetDataToDgv("", strCancelMsg);
+
 			}
-			else
+			catch (Exception exp1)
 			{
-				strCancelMsg = "[中断]";
+				MessageBox.Show(exp1.Message);
 			}
+			this.Refresh();
+
 
 			searching.Text = "";
 			Cursor.Current = Cursors.Default;
-			// ボタンの表示と動作を元に戻す。
-			btnClip.Enabled = true;
-			pnl.Enabled = true;
-			btnSearch.Text = "検索";
-			btnSearch.Enabled = true;
-			cmbRoot.FIllBoxEnable = true;
-			stat = ProcState.Default;
-			lblResult.Text = string.Format("検索{0} {1:#,0}件",strCancelMsg,m_objFS.FileResult.Count);
 
 		}
 
-		// ツリービューノード追加進捗
-		private void TrvDir_AddRangeProgress(ProgressCtrl ctrl)
+		// ツリービューの更新
+		private async Task TreeViewUpdate()
 		{
-			prgTreeCreate.Maximum = ctrl.TotalFiles;
-			prgTreeCreate.Value = ctrl.ProcessedCount;
-		}
+			// ツリービューの表示用リストを生成
+			var node = new TreeNodeElements("", 0, 2, SystemColors.ControlText);
+			var pathManager = new List<TreeNodeElements>(); //PathTreeManager(node);
+			foreach ( var objDirInfo in m_objFS.FolderResult )
+			{
+				string strRefPath = objDirInfo.strPath.Replace(cmbRoot.ComboText, strROOT);
+				node = new TreeNodeElements(strRefPath, 0, 2,
+						( objDirInfo.bIsSeach ) ? Color.Blue : SystemColors.ControlText);
+				pathManager.Add(node);
 
-		// ツリービューノード追加完了後処理
-		private void TrvDir_AddNodeRangeComplete(object sender, RunWorkerCompletedEventArgs e)
-		{
-			if (trvDir.Nodes.Count > 0)
+			}
+			// ツリービューの表示
+			trvDir.Visible = false;
+			trvDir.SuspendLayout();
+
+			prgTreeCreate.Maximum = pathManager.Count;
+			//trvDir.Manager = pathManager;
+
+			await trvDir.AddNodeRange(pathManager.ToArray());
+
+			trvDir.ExpandAll();
+
+			trvDir.ResumeLayout();
+			trvDir.Visible = true;
+
+
+			// ルートのアイコンを変更
+			if ( trvDir.Nodes.Count > 0 )
 			{
 				trvDir.Nodes[0].ImageIndex = 3;
 				trvDir.Nodes[0].SelectedImageIndex = 3;
 				trvDir.SelectedNode = trvDir.Nodes[0];
 				trvDir.Select();
 			}
-			trvDir.ExpandAll();
-			DebugWrite("End");
+
+		}
+
+		// ツリービューノード追加進捗
+		private void ProgressTreeView(ProgressCtrl ctrl)
+		{
+			prgTreeCreate.Maximum = ctrl.TotalFiles;
+			prgTreeCreate.Value = ctrl.ProcessedCount;
+		}
+
+
+		// DataGridViewへの表示
+		private void SetDataToDgv(string targetFolder = "", string addMessage = "検索結果:")
+		{
+			SortableBindingList<FileViewItem> lst = null;
+			string strCount = "";
+			if (targetFolder != "" )
+			{
+				var reslut = m_objFS.FileResult.Where(x => x.FullPath.IndexOf(targetFolder) == 0).ToList();
+				lst = new SortableBindingList<FileViewItem>(reslut);
+				addMessage = "検索フォルダ内:";
+				strCount = $"{reslut.Count():N0}/{m_objFS.FileCount:N0}";
+			}
+			else
+			{
+				// 全件表示
+				lst = m_objFS.FileResult;
+				strCount = $"{m_objFS.FileCount:N0}";
+			}
+			dgvResult.DataSource = lst;
+			dgvResult.ApplyColumnAttribute();
+			lblResult.Text = $"{addMessage} {strCount}件";
+
 
 		}
 
 		#endregion
 
-
-		public void DebugWrite(string str)
-		{
-			str =
-			DateTime.Now.ToString("yyyy/MM/dd/HH:mm:ss.fff") + ":" + str;
-
-			System.Diagnostics.Debug.WriteLine(str);
-
-		}
 	}
 
 

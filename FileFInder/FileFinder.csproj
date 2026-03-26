@@ -78,10 +78,10 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="serial.cs" />
+    <Compile Include="ControlExtends\serial.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="ControlExtends\treeViewEx.cs" />
-    <Compile Include="win32Api.cs" />
+    <Compile Include="ControlExtends\win32Api.cs" />
     <EmbeddedResource Include="ControlExtends\ComboHistoryAndFill.resx">
       <DependentUpon>ComboHistoryAndFill.cs</DependentUpon>
     </EmbeddedResource>
