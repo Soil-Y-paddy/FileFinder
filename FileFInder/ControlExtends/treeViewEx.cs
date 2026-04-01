@@ -95,7 +95,7 @@ namespace lib
 			for ( int nCnt = 0; nCnt < p_aryElements.Length; nCnt++ )
 			{
 				TreeNodeElements stElement = p_aryElements[nCnt];
-				TreeNode node = AddNode(dummyNode.Nodes, stElement.FullPath, stElement.ImageIndex, stElement.SelectImageIndex);
+				TreeNode node = AddNode(stElement.FullPath, stElement.ImageIndex, stElement.SelectImageIndex, dummyNode.Nodes );
 				node.ForeColor = stElement.ForeColor;
 
 				pg.Increment();
@@ -115,13 +115,13 @@ namespace lib
 		/// <param name="p_nImageIndex">イメージID</param>
 		/// <param name="p_nSelectedImageIndex">選択中のイメージID</param>
 		/// <returns></returns>
-		public TreeNode AddNode(string p_strPath, int p_nImageIndex = -1, int p_nSelectedImageIndex = -1)
+		public TreeNode AddNode( string p_strPath, int p_nImageIndex = -1, int p_nSelectedImageIndex = -1, TreeNodeCollection objRoot = null)
 		{
 
 			// パスを分割する
 			string[] aryTree = p_strPath.Split(PathSeparator.ToCharArray());
-			TreeNodeCollection objRoot = Nodes; // 追加先ノード
-			List<TreeNode> lst = new List<TreeNode>();
+			objRoot = objRoot ?? Nodes;
+			var lst = new List<TreeNode>();
 			TreeNode objNode = null; // 追加対象
 
 			// パスを順にたどる
@@ -137,58 +137,7 @@ namespace lib
 					objNode = (p_nImageIndex == -1) ? objRoot.Add(strNode, strNode)
 							: objRoot.Add(strNode, strNode, p_nImageIndex, p_nSelectedImageIndex);
 					// 親ノードを展開する
-					if (objNode.Parent != null)
-					{
-						objNode.Parent.ExpandAll();
-					}
-					objRoot = objNode.Nodes;// ノードを子パスに切り替える
-
-				}
-				else
-				{
-					objNode = objFind[0];
-					objRoot = objNode.Nodes; // 見つけたノードの子パスをルートにする
-				}
-
-			}
-			return objNode;
-
-		}
-
-
-		/// <summary>
-		/// フルパスで指定されたツリービューを追加する
-		/// </summary>
-		/// <param name="objRoot">格納先のノード</param>
-		/// <param name="p_strPath">フルパス</param>
-		/// <param name="p_nImageIndex">イメージID</param>
-		/// <param name="p_nSelectedImageIndex">選択中のイメージID</param>
-		/// <returns></returns>
-		private TreeNode AddNode( TreeNodeCollection objRoot, string p_strPath, int p_nImageIndex = -1, int p_nSelectedImageIndex = -1 )
-		{
-
-			// パスを分割する
-			string[] aryTree = p_strPath.Split(PathSeparator.ToCharArray());
-			List<TreeNode> lst = new List<TreeNode>();
-			TreeNode objNode = null; // 追加対象
-
-			// パスを順にたどる
-			foreach ( string strNode in aryTree )
-			{
-				if ( strNode == "" ) continue;
-
-				// すでに存在するか確認
-				TreeNode[] objFind = objRoot.Find(strNode, false);
-				if ( objFind.Length == 0 )
-				{
-					// なかったら作成する : イメージIDが未設定 / 設定済みでオーバロード切り替え
-					objNode = ( p_nImageIndex == -1 ) ? objRoot.Add(strNode, strNode)
-							: objRoot.Add(strNode, strNode, p_nImageIndex, p_nSelectedImageIndex);
-					// 親ノードを展開する
-					if ( objNode.Parent != null )
-					{
-						objNode.Parent.ExpandAll();
-					}
+					objNode.Parent?.ExpandAll();
 					objRoot = objNode.Nodes;// ノードを子パスに切り替える
 
 				}

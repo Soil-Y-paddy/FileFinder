@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
 using System.Xml.Serialization;
+using System.Linq;
 
 namespace lib
 {	
@@ -184,7 +185,7 @@ namespace lib
 				cmb1.Items.Clear();
 				// 先頭は無条件で空白文字
 				
-				if (value == null || value.Length == 0 || value[0] != "")
+				if (value?.FirstOrDefault()!="")
 				{
 					cmb1.Items.Add("");
 				}
