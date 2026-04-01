@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "longPathEdit": {
+      "commandName": "Project",
+      "commandLineArgs": "\r\n"
+    }
+  }
+}
