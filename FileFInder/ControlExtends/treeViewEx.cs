@@ -68,7 +68,7 @@ namespace lib
 		/// ツリーノードを再帰的に追加します。
 		/// </summary>
 		/// <param name="p_aryElements">ツリーノード要素の配列</param>
-		public async Task<bool> AddNodeRange(TreeNodeElements[] p_aryElements)
+		public async Task<bool> AddRangeAsync(TreeNodeElements[] p_aryElements)
 		{
 
 //			Visible = false;
@@ -95,7 +95,7 @@ namespace lib
 			for ( int nCnt = 0; nCnt < p_aryElements.Length; nCnt++ )
 			{
 				TreeNodeElements stElement = p_aryElements[nCnt];
-				TreeNode node = AddNode(stElement.FullPath, stElement.ImageIndex, stElement.SelectImageIndex, dummyNode.Nodes );
+				TreeNode node = AddNode(stElement, dummyNode.Nodes );
 				node.ForeColor = stElement.ForeColor;
 
 				pg.Increment();
@@ -115,12 +115,11 @@ namespace lib
 		/// <param name="p_nImageIndex">イメージID</param>
 		/// <param name="p_nSelectedImageIndex">選択中のイメージID</param>
 		/// <returns></returns>
-		public TreeNode AddNode( string p_strPath, int p_nImageIndex = -1, int p_nSelectedImageIndex = -1, TreeNodeCollection objRoot = null)
+		public TreeNode AddNode( TreeNodeElements p_stElement, TreeNodeCollection p_objRoot = null)
 		{
-
 			// パスを分割する
-			string[] aryTree = p_strPath.Split(PathSeparator.ToCharArray());
-			objRoot = objRoot ?? Nodes;
+			string[] aryTree = p_stElement.FullPath.Split(PathSeparator.ToCharArray());
+			p_objRoot = p_objRoot ?? Nodes;
 			var lst = new List<TreeNode>();
 			TreeNode objNode = null; // 追加対象
 
@@ -130,21 +129,21 @@ namespace lib
 				if (strNode == "") continue;
 
 				// すでに存在するか確認
-				TreeNode[] objFind = objRoot.Find(strNode, false);
+				TreeNode[] objFind = p_objRoot.Find(strNode, false);
 				if (objFind.Length == 0)
 				{
 					// なかったら作成する : イメージIDが未設定 / 設定済みでオーバロード切り替え
-					objNode = (p_nImageIndex == -1) ? objRoot.Add(strNode, strNode)
-							: objRoot.Add(strNode, strNode, p_nImageIndex, p_nSelectedImageIndex);
+					objNode = (p_stElement.ImageIndex == -1) ? p_objRoot.Add(strNode, strNode)
+							: p_objRoot.Add(strNode, strNode, p_stElement.ImageIndex, p_stElement.SelectImageIndex);
 					// 親ノードを展開する
 					objNode.Parent?.ExpandAll();
-					objRoot = objNode.Nodes;// ノードを子パスに切り替える
+					p_objRoot = objNode.Nodes;// ノードを子パスに切り替える
 
 				}
 				else
 				{
 					objNode = objFind[0];
-					objRoot = objNode.Nodes; // 見つけたノードの子パスをルートにする
+					p_objRoot = objNode.Nodes; // 見つけたノードの子パスをルートにする
 				}
 
 			}

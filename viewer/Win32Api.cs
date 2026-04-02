@@ -60,14 +60,23 @@ namespace lib
 		public static Bitmap GetFileIcon(string filePath, uint imageSize = SHGFI_SMALLICON)
 		{
 			Bitmap retVal = null;
-			// アプリケーション・アイコンを取得
-			SHFILEINFO shinfo = new SHFILEINFO( );
-			IntPtr hSuccess = SHGetFileInfo( filePath, 0, ref shinfo,
-				( uint ) Marshal.SizeOf( shinfo ), SHGFI_ICON | imageSize );
-			if( hSuccess != IntPtr.Zero )
+			try
 			{
-				Icon appIcon = Icon.FromHandle( shinfo.hIcon );
-				retVal = appIcon.ToBitmap( );
+				// アプリケーション・アイコンを取得
+				SHFILEINFO shinfo = new SHFILEINFO();
+				IntPtr hSuccess = SHGetFileInfo(filePath, 0, ref shinfo,
+					(uint) Marshal.SizeOf(shinfo), SHGFI_ICON | imageSize);
+				if ( hSuccess != IntPtr.Zero && shinfo.hIcon != IntPtr.Zero )
+				{
+					Icon appIcon = Icon.FromHandle(shinfo.hIcon);
+					if ( appIcon.Width * appIcon.Height > 0 )
+					{
+						retVal = appIcon.ToBitmap();
+					}
+				}
+			}
+			catch ( Exception ex )
+			{
 			}
 			return retVal;
 			;

@@ -1,6 +1,9 @@
 using lib;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
+using System.Xml;
 
 namespace viewer
 {
@@ -9,8 +12,10 @@ namespace viewer
 
 		#region 定数
 		const string strROOT = "ルート\\";
+		const long MAX_PATH = 260;
 		#endregion
 
+		#region メンバ
 		private FileHandler handler = new FileHandler();
 		ProcState stat;
 		FileSearcher m_objFS = new FileSearcher();
@@ -20,12 +25,17 @@ namespace viewer
 		private Config _config = new Config();
 		private bool _openFromArg = false;
 		private bool _AfterExpand = false;
+		private bool _loadingForm = false;
 
 
-		const long MAX_PATH = 260;
 
 		private static string ConfigFilePath => Path.Combine(Application.StartupPath, "Viewer.xml");
 
+		#endregion
+
+		#region プロパティ
+
+		// プログラム引数でパスを与えられたときに受けるプロパティ
 		public string FolderPath
 		{
 			get
@@ -42,6 +52,12 @@ namespace viewer
 			}
 		}
 
+		public bool SearchMode { get; set; }
+
+		#endregion
+
+		#region コンストラクタ/Load/Closing/デストラクタ
+
 		public frmDirectoryForm()
 		{
 			InitializeComponent();
@@ -52,33 +68,32 @@ namespace viewer
 
 		private async void Form1_Load( object sender, EventArgs e )
 		{
+			_loadingForm = true;
+
 			// imageListに辞書を作成
 			imageList1.Tag = new Dictionary<string, int>();
-			// プログレスハンドラの設定
+			// FileHandlerの進捗設定
 			handler.Progress = new Progress<ProgressCtrl>(ShowProgress);
-
-
-			// ファイル検索クラス
+			// ファイル検索クラスの進捗設定
 			m_objFS.Progress = new Progress<ProgressCtrl>(ShowProgressSearch);
+			// ツリービューの進捗設定
+			trvMain.Progress = new Progress<ProgressCtrl>(ShowTreeViewProgress);
 
-			bool normaly_load = true;
-			// 設定読み込み
-			if ( File.Exists(ConfigFilePath) )
+			tsSearch.Visible = false;
+			tsSearchTxt.Visible = false;
+
+
+			bool normaly_load = !_openFromArg;
+			if ( SearchMode )
 			{
-				_config = Config.Load(ConfigFilePath);
-				if ( !_openFromArg )
-				{
-					Location = _config.Location;
-					_history.HitoryResume = _config.PathHistory;
-					txtAddress.Text = _history.Current;
-					normaly_load = false;
-				}
-				cmbSearch.ResumeData = _config.KeywordHistory;
-				_searchType.SelectedIndex = _config.SearchType;
-				chkSearchSub.Checked = _config.SearchSubDir;
-				cmbTextWord.ResumeData = _config.TextKeyHistory;
-				Size = _config.Size;
-				this.WindowDesktopFit();
+				_openFromArg = true;
+			}
+
+			SetReadConf(_openFromArg);
+
+			if ( SearchMode )
+			{
+				btnSearchOpen.Checked = true;
 			}
 
 			// 履歴管理の設定
@@ -93,92 +108,36 @@ namespace viewer
 			// アドレスのテキストボックスのサイズ変更
 			toolStrip2_Resize(sender, e);
 
-			// ツリービューにドライブを追加
-			trvMain.AddNodeRange(await GetDirectoryElement("/"), trvMain.Nodes, true);
 
-			tsSearch.Visible = false;
-			tsSearchTxt.Visible = false;
+			// 検索モードではない場合はフォルダ情報を開く
+			if ( !btnSearchOpen.Checked )
+			{
+				// ツリービューにドライブを追加
+				trvMain.AddNodeRange(await GetDirectoryElement("/"), trvMain.Nodes, true);
 
-			await ViewDirectory(txtAddress.Text, normaly_load);
-
+				await ViewDirectory(txtAddress.Text, normaly_load);
+			}
+			_loadingForm = false;
 
 		}
 
-		private async Task ViewDirectory( string path, bool addHistory = true )
+		/// <summary>
+		/// ウィンドウを閉じる
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private void Form1_FormClosing( object sender, FormClosingEventArgs e )
 		{
-			// 検索窓を開いている場合、一度解除する
-			if ( btnSearchOpen.Checked )
-			{
-				btnSearchOpen.PerformClick();
-			}
+			// 状態の保存
+			WriteConf(_openFromArg);
 
-			_AfterExpand = true;
-			progressBar.Visible = true;
-			progressBar.Value = 0;
-
-			if ( path.EndsWith(":") )
-			{
-				path = path + "\\";
-			}
-			var result = await handler.LoadDirectory(path);
-
-			if ( result )
-			{
-				dgvMain.DataSource = handler.Items;
-				dgvMain.ApplyColumnAttribute();
-			}
-
-			if ( addHistory )
-			{
-				_history.Add(path);
-			}
-			txtAddress.Text = handler.CurrentPath;
-			lblTool2.Text = path;
-
-			btnUp.Enabled = !( string.IsNullOrEmpty(handler.PearentPath) );
-
-			await handler.DelayUpdateIcon();
-
-			progressBar.Visible = false;
-			lblTool1.Text = $"項目数: {handler.Count}";
-
-			await ExpandToPathAsync(path);
-			_AfterExpand = false;
-
+			// 保存前に内容のクリア
+			dgvMain.DataSource = null;
+			trvMain.Nodes.Clear();
 		}
 
 
-		private async Task<TreeNodeElements[]> GetDirectoryElement( string path )
-		{
-			var lst = new List<TreeNodeElements>();
-			FileHandler directory = new FileHandler();
-			await directory.LoadDirectory(path, true);
-
-			foreach ( var dir in directory.Items )
-			{
-				var image = (int) TreeIcon.FolderClose;
-				var imageOpen = (int) TreeIcon.FolderOpen;
-				if ( dir.IsDrive )
-				{
-					var dic = imageList1.Tag as Dictionary<string, int>;
-					if ( !dic.TryGetValue(dir.Name, out int value) )
-					{
-						// アイコン画像を取得
-						Bitmap icon = Win32Api.GetFileIcon(dir.FullPath);
-						value = imageList1.Images.Count;
-						imageList1.Images.Add(icon);
-						dic.Add(dir.Name, value);
-					}
-					image = value;
-					imageOpen = value;
-
-				}
-
-				var item = new TreeNodeElements(dir.FullPath, image, imageOpen, SystemColors.ControlText);
-				lst.Add(item);
-			}
-			return lst.ToArray();
-		}
+		#endregion
 
 		#region イベント
 
@@ -357,6 +316,8 @@ namespace viewer
 			await EnsureNodeLoadedAsync(e.Node!);
 		}
 
+		#region ボタン処理
+
 		// コピーボタン押下時
 		private void btnCopy_Click( object sender, EventArgs e )
 		{
@@ -534,7 +495,7 @@ namespace viewer
 		}
 
 		/// <summary>
-		/// 移動
+		/// 移動ボタン押下
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
@@ -564,22 +525,7 @@ namespace viewer
 			}
 		}
 
-
-
-
-		private void Form1_FormClosing( object sender, FormClosingEventArgs e )
-		{
-			_config.PathHistory = _history.HitoryResume;
-			_config.KeywordHistory = cmbSearch.ResumeData;
-			_config.Location = Location;
-			_config.Size = Size;
-			_config.SearchType = _searchType.SelectedIndex;
-			_config.SearchSubDir = chkSearchSub.Checked;
-			_config.TextKeyHistory = cmbTextWord.ResumeData;
-
-			_config.Save(ConfigFilePath);
-		}
-
+		#endregion
 
 		#region クリップボードの状態監視
 		// Windowハンドラ生成時に、クリップボードの監視処理を追加
@@ -701,26 +647,47 @@ namespace viewer
 		// メニューストリップを開いたとき
 		private void dirMenuStrip_Opening( object sender, CancelEventArgs e )
 		{
-			if ( dgvMain.SelectedRows.Count != 1 )
+			if ( dgvMain.SelectedRows.Count == 0 )
 			{
 				e.Cancel = true;
 				return;
 			}
-			var data = dgvMain.GetSelectedItems<FileViewItem>()[0];
-			if ( data.IsDirectory )
-			{
-				OpenFileMenuItem1.Visible = false;
-				OpenWinToolStripMenuItem.Visible = true;
-				NewWinToolStripMenuItem.Visible = true;
-			}
-			else
+
+			// 複数選択
+			if ( dgvMain.SelectedRows.Count > 1 )
 			{
 				OpenFileMenuItem1.Visible = true;
 				OpenWinToolStripMenuItem.Visible = false;
 				NewWinToolStripMenuItem.Visible = false;
+				RenameToolStripMenuItem.Visible = false;
+				PropertyToolStripMenuItem.Visible = false;
+				SearchMenuItem.Visible = false;
 			}
+			else
+			{
+
+				NewWinToolStripMenuItem.Visible = true;
+				RenameToolStripMenuItem.Visible = true;
+				PropertyToolStripMenuItem.Visible = true;
+
+				var data = dgvMain.GetSelectedItems<FileViewItem>()[0];
+				if ( data.IsDirectory )
+				{
+					SearchMenuItem.Visible = true;
+					OpenFileMenuItem1.Visible = false;
+					OpenWinToolStripMenuItem.Visible = true;
+					NewWinToolStripMenuItem.Visible = true;
+				}
+				else
+				{
+					SearchMenuItem.Visible = false;
+					OpenFileMenuItem1.Visible = true;
+					OpenWinToolStripMenuItem.Visible = false;
+					NewWinToolStripMenuItem.Visible = false;
+				}
 
 
+			}
 
 		}
 		// ファイルを開くメニュー
@@ -742,7 +709,203 @@ namespace viewer
 			}
 		}
 
+		// エクスプローラで場所開く
+		private void OpenExprolerMenuItem_Click( object sender, EventArgs e )
+		{
+			if ( dgvMain.SelectedRows.Count >= 1 )
+			{
+
+				var data = dgvMain.GetSelectedItems<FileViewItem>()[0];
+				Process.Start("explorer.exe", $"/select,\"{data.FullPath}\"");
+			}
+		}
+
+
 		#endregion
+
+		#region 検索_UI処理
+
+		// 検索ツールストリップの開閉
+		private async void btnSearchOpen_ChkChanged( object sender, EventArgs e )
+		{
+			if ( btnSearchOpen.Checked )
+			{
+				tsSearch.Visible = true;
+				dgvMain.DataSource = null;
+				trvMain.Nodes.Clear();
+
+			}
+			else
+			{
+				tsSearch.Visible = false;
+
+				// 元の表示に戻す
+				trvMain.AddNodeRange(await GetDirectoryElement("/"), trvMain.Nodes, true);
+				await ViewDirectory(txtAddress.Text, true);
+
+			}
+
+		}
+
+		// 検索キーワードテキスト入力処理
+		private void cmbSearch_KeyDown( object sender, KeyEventArgs e )
+		{
+			if ( e.KeyCode == Keys.Enter )
+			{
+				e.SuppressKeyPress = true;
+				btnSearch.PerformClick();
+			}
+
+		}
+
+		// 含まれる文字列検索ツールストリップの開閉
+		private void btnTxtSearchOpen_ChckedChange( object sender, EventArgs e )
+		{
+			if ( btnTxtSearchOpen.Checked )
+			{
+				tsSearchTxt.Visible = true;
+			}
+			else
+			{
+				tsSearchTxt.Visible = false;
+			}
+		}
+
+		// 検索ボタン
+		private async void btnSearch_Click( object sender, EventArgs e )
+		{
+
+			switch ( stat )
+			{
+				case ProcState.Default:
+					string rootPath = txtAddress.Text.Trim('\\') + "\\";
+
+
+					// フラグ更新
+					stat = ProcState.Execute;
+					btnSearch.Text = "中止";
+					btnClip.Enabled = false;
+					btnSearchError.Visible = false;
+					progressBar.Visible = true;
+					try
+					{
+						// 非同期待ち
+						await SearchExec();
+						// 後処理
+						await RunCompleted();
+
+					}
+					catch ( OperationCanceledException )
+					{
+					}
+					finally
+					{
+						btnClip.Enabled = true;
+						//pnl.Enabled = true;
+						btnSearch.Text = "検索";
+						btnSearch.Enabled = true;
+						stat = ProcState.Default;
+						progressBar.Visible = false;
+
+					}
+
+					break;
+				case ProcState.Execute:
+					btnSearch.Enabled = false;
+					btnSearch.Text = "中止中...";
+
+					m_objFS.Cancel();
+					stat = ProcState.Canceling;
+					break;
+			}
+		}
+
+		#endregion
+
+
+		#endregion
+
+		#region プライベートメソッド
+
+		#region 主処理
+
+		// フォルダ一覧取得処理
+		private async Task ViewDirectory( string path, bool addHistory = true )
+		{
+			// 検索窓を開いている場合、一度解除する
+			if ( btnSearchOpen.Checked )
+			{
+				btnSearchOpen.PerformClick();
+			}
+
+			_AfterExpand = true;
+			progressBar.Visible = true;
+			progressBar.Value = 0;
+
+			if ( path.EndsWith(":") )
+			{
+				path = path + "\\";
+			}
+			var result = await handler.LoadDirectory(path);
+			await handler.DelayUpdateIcon();
+			if ( result )
+			{
+				dgvMain.DataSource = handler.Items;
+				dgvMain.ApplyColumnAttribute();
+			}
+
+			if ( addHistory )
+			{
+				_history.Add(path);
+			}
+			txtAddress.Text = handler.CurrentPath;
+			lblTool2.Text = path;
+
+			btnUp.Enabled = !( string.IsNullOrEmpty(handler.PearentPath) );
+
+
+
+			progressBar.Visible = false;
+			lblTool1.Text = $"項目数: {handler.Count}";
+
+			await ExpandToPathAsync(path);
+			_AfterExpand = false;
+
+		}
+
+		// ツリービューのフォルダ一覧を取得する
+		private async Task<TreeNodeElements[]> GetDirectoryElement( string path )
+		{
+			var lst = new List<TreeNodeElements>();
+			FileHandler directory = new FileHandler();
+			await directory.LoadDirectory(path, true);
+
+			foreach ( var dir in directory.Items )
+			{
+				var image = (int) TreeIcon.FolderClose;
+				var imageOpen = (int) TreeIcon.FolderOpen;
+				if ( dir.IsDrive )
+				{
+					var dic = imageList1.Tag as Dictionary<string, int>;
+					if ( !dic.TryGetValue(dir.Name, out int value) )
+					{
+						// アイコン画像を取得
+						Bitmap icon = Win32Api.GetFileIcon(dir.FullPath);
+						value = imageList1.Images.Count;
+						imageList1.Images.Add(icon);
+						dic.Add(dir.Name, value);
+					}
+					image = value;
+					imageOpen = value;
+
+				}
+
+				var item = new TreeNodeElements(dir.FullPath, image, imageOpen, SystemColors.ControlText);
+				lst.Add(item);
+			}
+			return lst.ToArray();
+		}
+
 		#endregion
 
 		// ファイルを開く
@@ -792,6 +955,14 @@ namespace viewer
 			lblTool1.Text = $"Searching... {progress.ProcessedCount}";
 			lblTool2.Text = $" {Former.PathShorten(progress.CurrentFile)}";
 			progressBar.Style = ProgressBarStyle.Marquee;
+		}
+
+		// 検索後のツリービュー展開処理の更新
+		private void ShowTreeViewProgress( ProgressCtrl progress )
+		{
+			pbarTreeView.Maximum = progress.TotalFiles;
+			pbarTreeView.Value = progress.ProcessedCount;
+			lblTreeStatus.Text = $"{progress.StaticMessage}: {progress.CurrentFile}";
 		}
 
 		/// <summary>
@@ -855,7 +1026,7 @@ namespace viewer
 		}
 
 		/// <summary>
-		/// ノードが未ロードなら子を読み込む（BeforeExpandと同じロジック）
+		/// ノードが未ロードなら子を読み込む
 		/// </summary>
 		private async Task EnsureNodeLoadedAsync( TreeNode node )
 		{
@@ -870,7 +1041,30 @@ namespace viewer
 		}
 
 		/// <summary>
-		/// 
+		/// 検索モード中、ツリーノードルート\...なので、txtAdreess.Textと置換える。
+		///  ただし、afterSelectは、ルート選択時は、""を返す
+		/// </summary>
+		/// <param name="selNode"></param>
+		/// <returns></returns>
+		private string GetTreeViewPath( TreeNode selNode, bool afterSelect = false )
+		{
+
+			if ( btnSearchOpen.Checked )
+			{
+				string replacStr = txtAddress.Text;
+				if ( replacStr == "/" ) replacStr = "";
+
+				if ( selNode.Text == strROOT.Trim('\\') )
+					return afterSelect ? "" : replacStr;
+
+				return selNode.FullPath.Replace(strROOT, replacStr);
+
+			}
+			return selNode.FullPath;
+		}
+
+		/// <summary>
+		/// ツリービューのフォルダをクリックしたとき
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
@@ -891,20 +1085,9 @@ namespace viewer
 				//if ( m_selFromList )
 				//	return;
 
-
-				string replacStr = txtAddress.Text;
-				if ( replacStr == "/" ) replacStr = "";
-
-				// 全件表示
-				string strPath = "";
-				// 指定フォルダ？
-				if ( selNode.Text != strROOT.Trim('\\') )
-				{
-					strPath = selNode.FullPath.Replace(strROOT, replacStr);
-
-				}
+				var strPath = GetTreeViewPath(selNode, true);
 				await SetDataToDgv(strPath);
-				lblTool2.Text = "フォルダ:" + selNode.FullPath.Replace(strROOT, replacStr);
+				lblTool2.Text = "フォルダ:" + strPath;
 				this.Refresh();
 
 				return;
@@ -916,94 +1099,78 @@ namespace viewer
 
 		}
 
-		private async void btnSearchOpen_Click( object sender, EventArgs e )
+
+
+		private void trvMain_MouseClick( object sender, MouseEventArgs e )
 		{
-			if ( btnSearchOpen.Checked )
+			if ( e.Button == MouseButtons.Right )
 			{
-				tsSearch.Visible = true;
-				dgvMain.DataSource = null;
-				trvMain.Nodes.Clear();
-
-			}
-			else
-			{
-				tsSearch.Visible = false;
-
-				// 元の表示に戻す
-				trvMain.AddNodeRange(await GetDirectoryElement("/"), trvMain.Nodes, true);
-				await ViewDirectory(txtAddress.Text, true);
-
-			}
-
-		}
-
-
-		private void btnTxtSearchOpen_Click_1( object sender, EventArgs e )
-		{
-			if ( !btnTxtSearchOpen.Checked )
-			{
-				tsSearchTxt.Visible = true;
-				btnTxtSearchOpen.Checked = true;
-
-			}
-			else
-			{
-				tsSearchTxt.Visible = false;
-				btnTxtSearchOpen.Checked = false;
+				TreeNode node = trvMain.GetNodeAt(e.X, e.Y);
+				if ( node != null )
+				{
+					trvMain.SelectedNode = node;
+				}
 			}
 		}
 
-		private async void btnSearch_Click( object sender, EventArgs e )
+		#region 設定値のR/W
+
+		/// <summary>
+		/// 設定値をファイルから読み込む
+		/// </summary>
+		/// <param name="openFromArg">プログラム引数あり？</param>
+		void SetReadConf( bool openFromArg )
 		{
 
-			switch ( stat )
+			// 設定読み込み
+			if ( File.Exists(ConfigFilePath) )
 			{
-				case ProcState.Default:
-					string rootPath = txtAddress.Text.Trim('\\') + "\\";
+				_config = Config.Load(ConfigFilePath);
+				if ( !openFromArg )
+				{
+					Location = _config.Location;
+					_history.HitoryResume = _config.PathHistory;
+					txtAddress.Text = _history.Current;
+					btnSearchOpen.Checked = _config.SeachOpen;
+					btnTxtSearchOpen.Checked = _config.SearchTextOpen;
 
+				}
+				cmbSearch.ResumeData = _config.KeywordHistory;
+				_searchType.SelectedIndex = _config.SearchType;
+				chkSearchSub.Checked = _config.SearchSubDir;
+				cmbTextWord.ResumeData = _config.TextKeyHistory;
 
-					// フラグ更新
-					stat = ProcState.Execute;
-					btnSearch.Text = "中止";
-					btnClip.Enabled = false;
-					btnSearchError.Visible = false;
-					progressBar.Visible = true;
-					try
-					{
-						// 非同期待ち
-						await SearchExec();
-						// 後処理
-						await RunCompleted();
-
-					}
-					catch ( OperationCanceledException )
-					{
-					}
-					finally
-					{
-						btnClip.Enabled = true;
-						//pnl.Enabled = true;
-						btnSearch.Text = "検索";
-						btnSearch.Enabled = true;
-						stat = ProcState.Default;
-						progressBar.Visible = false;
-
-					}
-
-					break;
-				case ProcState.Execute:
-					btnSearch.Enabled = false;
-					btnSearch.Text = "中止中...";
-
-					m_objFS.Cancel();
-					stat = ProcState.Canceling;
-					break;
+				Size = _config.Size;
+				this.WindowDesktopFit();
 			}
 		}
 
-		// 検索処理本体
+		void WriteConf( bool openFromArg )
+		{
 
-		#region 主処理
+			if ( !openFromArg )
+			{
+				_config.PathHistory = _history.HitoryResume;
+				_config.Location = Location;
+				_config.SeachOpen = btnSearchOpen.Checked;
+				_config.SearchTextOpen = btnTxtSearchOpen.Checked;
+			}
+
+
+			_config.KeywordHistory = cmbSearch.ResumeData;
+
+			_config.Size = Size;
+			_config.SearchType = _searchType.SelectedIndex;
+			_config.SearchSubDir = chkSearchSub.Checked;
+			_config.TextKeyHistory = cmbTextWord.ResumeData;
+			_config.Save(ConfigFilePath);
+		}
+
+		#endregion
+
+		#endregion
+
+		#region 検索処理本体
 
 		/// <summary>
 		/// 検索の主実行
@@ -1059,13 +1226,15 @@ namespace viewer
 		// ファイル検索完了後処理
 		private async Task RunCompleted()
 		{
+			lblTool2.Text = "";
+
 			_AfterExpand = true;
 			string strCancelMsg = "検索結果";
 			imgSearching.Visible = false;
 
 			if ( m_objFS.ExceptionMsg != "" )
 			{
-				btnSearch.Visible = true;
+				btnSearchError.Visible = true;
 
 				//MessageBox.Show("実行中エラーが発生しました\n" + m_FS.ExeptionMsg);
 			}
@@ -1097,30 +1266,41 @@ namespace viewer
 		// ツリービューの更新
 		private async Task TreeViewUpdate()
 		{
-			// ツリービューの表示用リストを生成
-			var node = new TreeNodeElements("", (int) TreeIcon.FolderClose, (int) TreeIcon.FolderOpen, SystemColors.ControlText);
-			var pathManager = new List<TreeNodeElements>(); //PathTreeManager(node);
-			foreach ( var objDirInfo in m_objFS.FolderResult )
-			{
-				// 通常は、パスをstrROOTに置換える、
-				// ドライブルートの場合は、strROOTを付与する
-				string strRefPath = "";
-				if ( txtAddress.Text != "/" )
-					strRefPath = objDirInfo.strPath.Replace(txtAddress.Text, strROOT);
-				else
-					strRefPath = strROOT + objDirInfo.strPath;
 
-				node = new TreeNodeElements(strRefPath, (int) TreeIcon.FolderClose, (int) TreeIcon.FolderOpen,
-						( objDirInfo.bIsSeach ) ? Color.Blue : SystemColors.ControlText);
-				pathManager.Add(node);
-
-			}
 			// ツリービューの表示
 			trvMain.Visible = false;
 			trvMain.SuspendLayout();
 
-			progressBar.Maximum = pathManager.Count;
-			//trvDir.Manager = pathManager;
+			IProgress<ProgressCtrl> Progress = new Progress<ProgressCtrl>(ShowTreeViewProgress);
+			// ツリービューの表示用リストを生成
+			var pathManager = await Task.Run(() =>
+			{
+				var pgArg = new ProgressCtrl("リスト生成");
+				pgArg.TotalFiles = m_objFS.FolderResult.Count;
+
+				var pathManager = new ConcurrentBag<TreeNodeElements>(); //PathTreeManager(node);
+				var strRootAddr = txtAddress.Text;
+				Parallel.ForEach(m_objFS.FolderResultPar, objDirInfo =>
+				{
+					// 通常は、パスをstrROOTに置換える、
+					// ドライブルートの場合は、strROOTを付与する
+					string strRefPath = "";
+					if ( strRootAddr != "/" )
+						strRefPath = objDirInfo.strPath.Replace(strRootAddr, strROOT);
+					else
+						strRefPath = strROOT + objDirInfo.strPath;
+
+					var node = new TreeNodeElements(
+							strRefPath, (int) TreeIcon.FolderClose, (int) TreeIcon.FolderOpen,
+							( objDirInfo.bIsSeach ) ? Color.Blue : SystemColors.ControlText
+						);
+					pathManager.Add(node);
+					pgArg.Increment(Path.GetFileName(strRefPath));
+					if ( pgArg.ProcessedCount % 10 == 0 )
+						Progress.Report(pgArg);
+				});
+				return pathManager;
+			});
 
 			await trvMain.AddNodeRangeAsync(pathManager.ToArray());
 
@@ -1160,11 +1340,12 @@ namespace viewer
 				lst = m_objFS.FileResult;
 				strCount = $"{m_objFS.FileCount:N0}";
 			}
+			// アイコンの取得
+			await handler.DelayUpdateIcon(lst);
+
 			dgvMain.DataSource = lst;
 			dgvMain.ApplyColumnAttribute();
 
-			// アイコンの遅延取得
-			await handler.DelayUpdateIcon(lst);
 
 
 			lblTool1.Text = $"{addMessage} {strCount}件";
@@ -1172,18 +1353,88 @@ namespace viewer
 
 		}
 
-		#endregion
-
-
+		// 検索結果のコピーボタン
 		private void btnClip_Click( object sender, EventArgs e )
 		{
 			handler.SetClipboard(m_objFS.FileResult.ToList(), ProcType.Copy);
 
 		}
 
+		// 検索結果エラーボタン
+		private void btnSearchError_Click( object sender, EventArgs e )
+		{
+			var form = new frmMsg();
+			form.Message = m_objFS.ExceptionMsg;
+			form.Show();
+		}
+		#endregion
+
+		// ツリーメニューで新しいウィンドウで開く
+		private void NewWinFromTreeMenu_Click( object sender, EventArgs e )
+		{
+			string path = GetTreeViewPath(trvMain.SelectedNode);
+			if ( string.IsNullOrEmpty(path) )
+				path = "/";
+
+			Program.OpenDirForm(path);
+		}
+
+		// 
+		private void OpenExprolerFromTreeMenu_Click( object sender, EventArgs e )
+		{
+			string path = GetTreeViewPath(trvMain.SelectedNode);
+			if ( string.IsNullOrEmpty(path) )
+				path = "shell:MyComputerFolder";
+			Process.Start("explorer.exe", path);
+		}
+
+
+		private void dgvMain_MouseClick( object sender, MouseEventArgs e )
+		{
+
+			if ( e.Button == MouseButtons.Right )
+			{
+				// 複数個既に選択されている
+				if ( dgvMain.SelectedRows.Count > 1 )
+				{
+					dirMenuStrip.Show(MousePosition);
+				}
+				else
+				{
+					// 選択行を決める
+					var hit = dgvMain.HitTest(e.X, e.Y);
+					if ( hit.RowIndex >= 0 )
+					{
+						dgvMain.ClearSelection();
+						dgvMain.Rows[hit.RowIndex].Selected = true;
+						dirMenuStrip.Show(MousePosition);
+					}
+				}
+			}
+		}
+
+		private void SearchWinFromTreeMenu_Click( object sender, EventArgs e )
+		{
+			string path = GetTreeViewPath(trvMain.SelectedNode);
+			if ( string.IsNullOrEmpty(path) )
+				path = "/";
+
+			Program.OpenDirForm(path, true);
+		}
+
+		private void SearchMenuItem_Click( object sender, EventArgs e )
+		{
+
+			if ( dgvMain.SelectedRows.Count >= 1 )
+			{
+
+				var data = dgvMain.GetSelectedItems<FileViewItem>()[0];
+				Program.OpenDirForm(data.FullPath, true);
+			}
+		}
 	}
 
-
+	#region ツリービューアイコンのEnum
 	enum TreeIcon
 	{
 		Root = 0,
@@ -1193,6 +1444,9 @@ namespace viewer
 		FolderOpen,
 		File
 	}
+	#endregion
+
+	#region 検索処理の状態
 
 	public enum ProcState
 	{
@@ -1200,4 +1454,6 @@ namespace viewer
 		Execute = 1,    // 実行中
 		Canceling = 2,  // キャンセル待ち
 	}
+
+	#endregion
 }

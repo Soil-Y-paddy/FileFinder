@@ -147,7 +147,12 @@ namespace lib
 			{
 				return path;
 			}
-			return dirName.Substring(0,50)+"...\\"+Path.GetFileName(path);
+			dirName = dirName.Substring(0,50)+"...\\"+Path.GetFileName(path);
+			if(dirName.Length > 100 )
+			{
+				dirName = dirName.Substring(0, 100) + "...";
+			}
+			return dirName;
 
 		}
 

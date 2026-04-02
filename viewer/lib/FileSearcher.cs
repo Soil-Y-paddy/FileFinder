@@ -93,8 +93,8 @@ namespace lib
 
 		#region メンバ変数
 
-		ConcurrentBag<FileViewItem> m_lstFiles; // (並列処理対応版)ファイル一覧
-		ConcurrentBag<DirInfo> m_lstDirs; // (並列処理対応版) フォルダ一覧
+		ConcurrentBag<FileViewItem> m_lstFiles = new ConcurrentBag<FileViewItem>(); // (並列処理対応版)ファイル一覧
+		ConcurrentBag<DirInfo> m_lstDirs = new ConcurrentBag<DirInfo>(); // (並列処理対応版) フォルダ一覧
 
 		CancellationTokenSource m_CancellationSource = null;
 		CancellationToken m_token;
@@ -114,6 +114,7 @@ namespace lib
 
 		public SortableBindingList<FileViewItem> FileResult => new SortableBindingList<FileViewItem>(m_lstFiles.ToList());
 		public SortableBindingList<DirInfo> FolderResult => new SortableBindingList<DirInfo>(m_lstDirs.ToList());
+		public ConcurrentBag<DirInfo> FolderResultPar => m_lstDirs;
 
 		public bool IsCanceled { get; private set; }
 
@@ -129,7 +130,6 @@ namespace lib
 		/// <returns></returns>
 		public async Task<bool> ExecuteAsync( FileSearchInfo p_objInfo )
 		{
-
 			m_lstFiles = new ConcurrentBag<FileViewItem>();
 			m_lstDirs = new ConcurrentBag<DirInfo>();
 			var objCtrl = new ProgressCtrl(ProcType.Load);

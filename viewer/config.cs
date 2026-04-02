@@ -23,6 +23,8 @@ namespace viewer
 		public HistoryData TextKeyHistory { get; set; } = new HistoryData();
 		public int SearchType { get; set; } = 0;
 		public bool SearchSubDir { get; set; } = true;
+		public bool SeachOpen { get; set; } = true;
+		public bool SearchTextOpen { get; set; } = false;
 
 
 		public Config() { }

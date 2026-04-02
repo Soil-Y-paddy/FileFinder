@@ -262,17 +262,23 @@ namespace lib
 				items = Items;
 			await Task.Run( ( ) =>
 			{
-				var progressArg = new ProgressCtrl( "アイコンの遅延更新中" );
+				var progressArg = new ProgressCtrl( "アイコンの取得中" );
 				progressArg.TotalFiles = items.Count;
+
 				// 拡張子毎に検証
-				Dictionary<string, string> typeDict = new Dictionary<string, string>();
-				foreach ( var item in items )
+				ConcurrentDictionary<string, string> typeDict = new ConcurrentDictionary<string, string>();
+				Parallel.ForEach(items, item =>
 				{
-					if(!typeDict.ContainsKey(item.Type.ToLower()))
-						typeDict.Add(item.Type.ToLower(), item.FullPath);
-				}
+
+					if ( item != null && !string.IsNullOrEmpty(item.Type) )
+					{
+						if ( !typeDict.ContainsKey(item.Type.ToLower()) )
+							typeDict[item.Type.ToLower()] = item.FullPath;
+					}
+				});
+				progressArg.TotalFiles = typeDict.Count;
 				// 拡張子毎の画像を先読み
-				foreach(var kv in typeDict)
+				Parallel.ForEach(typeDict, kv =>
 				{
 					if ( !TypeIcon.TryGetValue(kv.Key, out var bitmap) )
 					{
@@ -281,15 +287,29 @@ namespace lib
 							TypeIcon.TryGetValue(FILE_DEFAULE_NAME, out bitmap);
 						TypeIcon[kv.Key] = bitmap;
 					}
+					progressArg.Increment(kv.Key);
+					if ( progressArg.ProcessedCount % 100 == 100 )
+					{
+						Progress?.Report(progressArg);
+					}
+				});
+				progressArg.StaticMessage = "アイコンの反映";
+				progressArg.TotalFiles = items.Count;
+				progressArg.Set(0);
+				Progress?.Report(progressArg);
 
-				}
 				Parallel.ForEach(items, item =>
 				{
-					SetTypeImage(item);
-					progressArg.Increment(item.Name);
-					
-					Progress?.Report(progressArg);
+					if ( item != null )
+					{
+						SetTypeImage(item);
+						progressArg.Increment(item.Name);
+						if ( progressArg.ProcessedCount % 100 == 100 )
+						{
 
+							Progress?.Report(progressArg);
+						}
+					}
 				});
 				/*
 				foreach ( var item in items )
@@ -325,7 +345,12 @@ namespace lib
 			}
 			else
 			{
-				if(!TypeIcon.TryGetValue( item.Type.ToLower(), out bitmap ) )
+				if( string.IsNullOrEmpty(item.Type))
+				{
+					TypeIcon.TryGetValue(FILE_DEFAULE_NAME, out bitmap);
+
+				}
+				else if (!TypeIcon.TryGetValue( item.Type.ToLower(), out bitmap ) )
 				{
 					bitmap = Win32Api.GetFileIcon( item.FullPath );
 					if( bitmap == null )
@@ -333,7 +358,7 @@ namespace lib
 				}
 			}
 			item.Icon = bitmap;
-			item.NotifyUpdated();
+			//item.NotifyUpdated();
 		}
 
 

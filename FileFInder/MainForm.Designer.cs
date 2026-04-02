@@ -175,33 +175,33 @@ namespace FileFinder
             this.MnuOpenFolder,
             this.MnuFileProperty});
 			this.listMenu.Name = "contextMenuStrip2";
-			this.listMenu.Size = new System.Drawing.Size(129, 92);
+			this.listMenu.Size = new System.Drawing.Size(181, 114);
 			// 
 			// MnuPathCopy
 			// 
 			this.MnuPathCopy.Name = "MnuPathCopy";
-			this.MnuPathCopy.Size = new System.Drawing.Size(128, 22);
+			this.MnuPathCopy.Size = new System.Drawing.Size(180, 22);
 			this.MnuPathCopy.Text = "パスのコピー";
 			this.MnuPathCopy.Click += new System.EventHandler(this.MnuPathCopy_Click);
 			// 
 			// MnuOpenFile
 			// 
 			this.MnuOpenFile.Name = "MnuOpenFile";
-			this.MnuOpenFile.Size = new System.Drawing.Size(128, 22);
+			this.MnuOpenFile.Size = new System.Drawing.Size(180, 22);
 			this.MnuOpenFile.Text = "開く";
 			this.MnuOpenFile.Click += new System.EventHandler(this.MnuOpenFile_Click);
 			// 
 			// MnuOpenFolder
 			// 
 			this.MnuOpenFolder.Name = "MnuOpenFolder";
-			this.MnuOpenFolder.Size = new System.Drawing.Size(128, 22);
+			this.MnuOpenFolder.Size = new System.Drawing.Size(180, 22);
 			this.MnuOpenFolder.Text = "場所を開く";
 			this.MnuOpenFolder.Click += new System.EventHandler(this.MnuOpenFolder_Click);
 			// 
 			// MnuFileProperty
 			// 
 			this.MnuFileProperty.Name = "MnuFileProperty";
-			this.MnuFileProperty.Size = new System.Drawing.Size(128, 22);
+			this.MnuFileProperty.Size = new System.Drawing.Size(180, 22);
 			this.MnuFileProperty.Text = "プロパティ";
 			this.MnuFileProperty.Click += new System.EventHandler(this.MnuFileProperty_Click);
 			// 

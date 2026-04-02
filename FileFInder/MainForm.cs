@@ -608,7 +608,7 @@ namespace FileFinder
 			prgTreeCreate.Maximum = pathManager.Count;
 			//trvDir.Manager = pathManager;
 
-			await trvDir.AddNodeRange(pathManager.ToArray());
+			await trvDir.AddRangeAsync(pathManager.ToArray());
 
 			trvDir.ExpandAll();
 

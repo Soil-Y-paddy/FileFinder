@@ -43,7 +43,6 @@ namespace lib
 
 		public IProgress<ProgressCtrl> Progress { get; set; } = null;
 
-
 		#endregion
 
 		#region コンストラクタ
@@ -109,7 +108,7 @@ namespace lib
 		// 非同期処理の主実行
 		private TreeNode[] process( TreeNodeElements[] p_aryElements, TreeNodeCollection p_Nodes, bool p_bLazyOpen  )
 		{
-			ProgressCtrl progress = new ProgressCtrl(ProcType.Load);
+			ProgressCtrl progress = new ProgressCtrl("展開処理");
 
 
 			progress.TotalFiles = p_aryElements.Length;

@@ -19,13 +19,7 @@ namespace viewer
 			// To customize application configuration such as set high DPI settings or default font,
 			// see https://aka.ms/applicationconfiguration.
 			ApplicationConfiguration.Initialize();
-			string arg = "";
-			if ( args.Length > 0 )
-				arg = args[0];
-			if( arg.EndsWith(".zip") )
-				Application.Run(new frmZipViewer() { ZipFilePath = arg });
-			else
-				Application.Run(new frmDirectoryForm() { FolderPath = arg });
+			ArgCheck(args);
 		}
 
 		// ZIPViewerを新たに開く
@@ -45,12 +39,13 @@ namespace viewer
 			new frmZipViewer { ZipFilePath = zip }.Show();
 		}
 		// DirectoryFormを新たに開く
-		public static void OpenDirForm(string dir)
+		public static void OpenDirForm(string dir, bool search= false)
 		{
 			var form = Application.OpenForms
 				.OfType<frmDirectoryForm>()
 				.FirstOrDefault(f =>
-					string.Equals(f.FolderPath, dir, StringComparison.OrdinalIgnoreCase));
+					string.Equals(f.FolderPath, dir, StringComparison.OrdinalIgnoreCase)
+					&& bool.Equals(f.SearchMode, search));
 
 			if ( form != null )
 			{
@@ -58,7 +53,25 @@ namespace viewer
 				return;
 			}
 
-			new frmDirectoryForm { FolderPath = dir }.Show();
+			new frmDirectoryForm { FolderPath = dir, SearchMode = search }.Show();
+
+		}
+
+		private static void ArgCheck( string[] args)
+		{
+			var options = new[] { "-s", "-search" };
+
+			// -s オプションを取得する
+			bool hasSearch = args.Any(a =>
+				options.Contains(a, StringComparer.OrdinalIgnoreCase));
+			// 値を取得する
+			var value = args
+				.FirstOrDefault(a => !options.Contains(a, StringComparer.OrdinalIgnoreCase))??"";
+
+			if (!string.IsNullOrEmpty(value) && value.EndsWith(".zip") )
+				Application.Run(new frmZipViewer() { ZipFilePath = value });
+			else
+				Application.Run(new frmDirectoryForm() { FolderPath = value, SearchMode=hasSearch });
 
 		}
 
