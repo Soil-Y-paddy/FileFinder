@@ -38,6 +38,7 @@ namespace viewer
 			dirMenuStrip = new ContextMenuStrip(components);
 			OpenWinToolStripMenuItem = new ToolStripMenuItem();
 			NewWinToolStripMenuItem = new ToolStripMenuItem();
+			SearchMenuItem = new ToolStripMenuItem();
 			OpenFileMenuItem1 = new ToolStripMenuItem();
 			toolStripSeparator1 = new ToolStripSeparator();
 			CutToolStripMenuItem = new ToolStripMenuItem();
@@ -48,11 +49,11 @@ namespace viewer
 			toolStripSeparator2 = new ToolStripSeparator();
 			PropertyToolStripMenuItem = new ToolStripMenuItem();
 			OpenExprolerMenuItem = new ToolStripMenuItem();
-			SearchMenuItem = new ToolStripMenuItem();
 			statusStrip1 = new StatusStrip();
 			lblTool1 = new ToolStripStatusLabel();
 			progressBar = new ToolStripProgressBar();
 			lblTool2 = new ToolStripStatusLabel();
+			lblTool2_Hide = new ToolStripStatusLabel();
 			tsMain = new ToolStrip();
 			btnLeft = new ToolStripButton();
 			btnRight = new ToolStripButton();
@@ -79,9 +80,10 @@ namespace viewer
 			OpenExprolerFromTreeMenu = new ToolStripMenuItem();
 			SearchWinFromTreeMenu = new ToolStripMenuItem();
 			imageList1 = new ImageList(components);
-			pbarTreeView = new ProgressBar();
-			lblTreeStatus = new Label();
+			panel1 = new Panel();
 			label1 = new Label();
+			lblTreeStatus = new Label();
+			pbarTreeView = new ProgressBar();
 			tsSearch = new ToolStrip();
 			lblKeyword = new ToolStripLabel();
 			cmbSearch = new ToolStrpHistoryComoboBox();
@@ -104,6 +106,8 @@ namespace viewer
 			tsSearchTxt = new ToolStrip();
 			lblText = new ToolStripLabel();
 			cmbTextWord = new ToolStrpHistoryComoboBox();
+			pbarDgvProc = new ProgressBar();
+			lblDgvProc = new Label();
 			( (System.ComponentModel.ISupportInitialize) dgvMain ).BeginInit();
 			dirMenuStrip.SuspendLayout();
 			statusStrip1.SuspendLayout();
@@ -114,6 +118,7 @@ namespace viewer
 			splitContainer1.Panel2.SuspendLayout();
 			splitContainer1.SuspendLayout();
 			treeViewMenu.SuspendLayout();
+			panel1.SuspendLayout();
 			tsSearch.SuspendLayout();
 			tsSearchTxt.SuspendLayout();
 			SuspendLayout();
@@ -131,7 +136,7 @@ namespace viewer
 			dgvMain.Name = "dgvMain";
 			dgvMain.ReadOnly = true;
 			dgvMain.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-			dgvMain.Size = new Size(479, 321);
+			dgvMain.Size = new Size(503, 393);
 			dgvMain.TabIndex = 3;
 			dgvMain.CellDoubleClick +=  dgvMain_CellDoubleClick ;
 			dgvMain.SelectionChanged +=  dgvMain_SelectionChanged ;
@@ -142,7 +147,7 @@ namespace viewer
 			// 
 			dirMenuStrip.Items.AddRange(new ToolStripItem[] { OpenWinToolStripMenuItem, NewWinToolStripMenuItem, SearchMenuItem, OpenFileMenuItem1, toolStripSeparator1, CutToolStripMenuItem, CopyToolStripMenuItem, DeleteToolStripMenuItem, ComplessZipToolStripMenuItem, RenameToolStripMenuItem, toolStripSeparator2, PropertyToolStripMenuItem, OpenExprolerMenuItem });
 			dirMenuStrip.Name = "dirMenuStrip";
-			dirMenuStrip.Size = new Size(199, 280);
+			dirMenuStrip.Size = new Size(199, 258);
 			dirMenuStrip.Opening +=  dirMenuStrip_Opening ;
 			// 
 			// OpenWinToolStripMenuItem
@@ -158,6 +163,13 @@ namespace viewer
 			NewWinToolStripMenuItem.Size = new Size(198, 22);
 			NewWinToolStripMenuItem.Text = "新しいウィンドウで開く(&N)";
 			NewWinToolStripMenuItem.Click +=  NewWinToolStripMenuItem_Click ;
+			// 
+			// SearchMenuItem
+			// 
+			SearchMenuItem.Name = "SearchMenuItem";
+			SearchMenuItem.Size = new Size(198, 22);
+			SearchMenuItem.Text = "新しい検索を開く(&S)";
+			SearchMenuItem.Click +=  SearchMenuItem_Click ;
 			// 
 			// OpenFileMenuItem1
 			// 
@@ -225,19 +237,12 @@ namespace viewer
 			OpenExprolerMenuItem.Text = "場所を開く";
 			OpenExprolerMenuItem.Click +=  OpenExprolerMenuItem_Click ;
 			// 
-			// SearchMenuItem
-			// 
-			SearchMenuItem.Name = "SearchMenuItem";
-			SearchMenuItem.Size = new Size(198, 22);
-			SearchMenuItem.Text = "新しい検索を開く(&S)";
-			SearchMenuItem.Click +=  SearchMenuItem_Click ;
-			// 
 			// statusStrip1
 			// 
-			statusStrip1.Items.AddRange(new ToolStripItem[] { lblTool1, progressBar, lblTool2 });
-			statusStrip1.Location = new Point(0, 427);
+			statusStrip1.Items.AddRange(new ToolStripItem[] { lblTool1, progressBar, lblTool2, lblTool2_Hide });
+			statusStrip1.Location = new Point(0, 499);
 			statusStrip1.Name = "statusStrip1";
-			statusStrip1.Size = new Size(724, 24);
+			statusStrip1.Size = new Size(759, 24);
 			statusStrip1.TabIndex = 4;
 			statusStrip1.Text = "statusStrip1";
 			// 
@@ -260,8 +265,18 @@ namespace viewer
 			lblTool2.BorderSides =     ToolStripStatusLabelBorderSides.Left  |  ToolStripStatusLabelBorderSides.Top   |  ToolStripStatusLabelBorderSides.Right   |  ToolStripStatusLabelBorderSides.Bottom ;
 			lblTool2.BorderStyle = Border3DStyle.Sunken;
 			lblTool2.Name = "lblTool2";
-			lblTool2.Size = new Size(56, 19);
-			lblTool2.Text = "sssssssss";
+			lblTool2.Size = new Size(4, 19);
+			lblTool2.Click +=  lblTool2_Click ;
+			// 
+			// lblTool2_Hide
+			// 
+			lblTool2_Hide.BorderSides =     ToolStripStatusLabelBorderSides.Left  |  ToolStripStatusLabelBorderSides.Top   |  ToolStripStatusLabelBorderSides.Right   |  ToolStripStatusLabelBorderSides.Bottom ;
+			lblTool2_Hide.BorderStyle = Border3DStyle.Raised;
+			lblTool2_Hide.Name = "lblTool2_Hide";
+			lblTool2_Hide.Size = new Size(59, 19);
+			lblTool2_Hide.Text = "詳細表示";
+			lblTool2_Hide.Visible = false;
+			lblTool2_Hide.Click +=  lblTool2_Click ;
 			// 
 			// tsMain
 			// 
@@ -269,7 +284,7 @@ namespace viewer
 			tsMain.Items.AddRange(new ToolStripItem[] { btnLeft, btnRight, btnUp, toolStripSeparator4, btnCopy, btnCut, btnPaste, btnDelete, btnCompless, btnRename, toolStripSeparator3, btnNewDir, toolStripLabel3, btnSearchOpen });
 			tsMain.Location = new Point(0, 0);
 			tsMain.Name = "tsMain";
-			tsMain.Size = new Size(724, 25);
+			tsMain.Size = new Size(759, 25);
 			tsMain.TabIndex = 5;
 			tsMain.Text = "toolStrip1";
 			// 
@@ -415,7 +430,7 @@ namespace viewer
 			tsAddr.Items.AddRange(new ToolStripItem[] { lblAddr, txtAddress, btnMove });
 			tsAddr.Location = new Point(0, 25);
 			tsAddr.Name = "tsAddr";
-			tsAddr.Size = new Size(724, 25);
+			tsAddr.Size = new Size(759, 25);
 			tsAddr.TabIndex = 6;
 			tsAddr.Text = "toolStrip2";
 			tsAddr.Move +=  toolStrip2_Resize ;
@@ -453,15 +468,15 @@ namespace viewer
 			// splitContainer1.Panel1
 			// 
 			splitContainer1.Panel1.Controls.Add(trvMain);
-			splitContainer1.Panel1.Controls.Add(pbarTreeView);
-			splitContainer1.Panel1.Controls.Add(lblTreeStatus);
-			splitContainer1.Panel1.Controls.Add(label1);
+			splitContainer1.Panel1.Controls.Add(panel1);
 			// 
 			// splitContainer1.Panel2
 			// 
 			splitContainer1.Panel2.Controls.Add(dgvMain);
-			splitContainer1.Size = new Size(724, 321);
-			splitContainer1.SplitterDistance = 241;
+			splitContainer1.Panel2.Controls.Add(lblDgvProc);
+			splitContainer1.Panel2.Controls.Add(pbarDgvProc);
+			splitContainer1.Size = new Size(759, 393);
+			splitContainer1.SplitterDistance = 252;
 			splitContainer1.TabIndex = 7;
 			// 
 			// trvMain
@@ -475,7 +490,7 @@ namespace viewer
 			trvMain.Name = "trvMain";
 			trvMain.Progress = null;
 			trvMain.SelectedImageIndex = 0;
-			trvMain.Size = new Size(241, 321);
+			trvMain.Size = new Size(252, 393);
 			trvMain.TabIndex = 0;
 			trvMain.BeforeExpand +=  trvMain_BeforeExpand ;
 			trvMain.AfterSelect +=  trvMain_AfterSelect ;
@@ -520,29 +535,41 @@ namespace viewer
 			imageList1.Images.SetKeyName(4, "folder.png");
 			imageList1.Images.SetKeyName(5, "file.png");
 			// 
-			// pbarTreeView
+			// panel1
 			// 
-			pbarTreeView.Location = new Point(28, 148);
-			pbarTreeView.Name = "pbarTreeView";
-			pbarTreeView.Size = new Size(169, 23);
-			pbarTreeView.TabIndex = 1;
-			// 
-			// lblTreeStatus
-			// 
-			lblTreeStatus.AutoSize = true;
-			lblTreeStatus.Location = new Point(28, 174);
-			lblTreeStatus.Name = "lblTreeStatus";
-			lblTreeStatus.Size = new Size(0, 15);
-			lblTreeStatus.TabIndex = 2;
+			panel1.Anchor =   AnchorStyles.Bottom  |  AnchorStyles.Right ;
+			panel1.Controls.Add(label1);
+			panel1.Controls.Add(lblTreeStatus);
+			panel1.Controls.Add(pbarTreeView);
+			panel1.Location = new Point(17, 155);
+			panel1.Name = "panel1";
+			panel1.Size = new Size(214, 78);
+			panel1.TabIndex = 3;
 			// 
 			// label1
 			// 
 			label1.AutoSize = true;
-			label1.Location = new Point(64, 130);
+			label1.Location = new Point(42, 5);
 			label1.Name = "label1";
 			label1.Size = new Size(91, 15);
 			label1.TabIndex = 2;
 			label1.Text = "ツリービュー展開中";
+			// 
+			// lblTreeStatus
+			// 
+			lblTreeStatus.AutoSize = true;
+			lblTreeStatus.Location = new Point(4, 47);
+			lblTreeStatus.Name = "lblTreeStatus";
+			lblTreeStatus.Size = new Size(32, 15);
+			lblTreeStatus.TabIndex = 2;
+			lblTreeStatus.Text = "sssss";
+			// 
+			// pbarTreeView
+			// 
+			pbarTreeView.Location = new Point(13, 24);
+			pbarTreeView.Name = "pbarTreeView";
+			pbarTreeView.Size = new Size(166, 19);
+			pbarTreeView.TabIndex = 1;
 			// 
 			// tsSearch
 			// 
@@ -550,7 +577,7 @@ namespace viewer
 			tsSearch.Items.AddRange(new ToolStripItem[] { lblKeyword, cmbSearch, toolStripSeparator5, toolStripLabel1, SearchType, toolStripSeparator7, toolStripLabel2, chkSearchSub, btnSearch, imgSearching, btnSearchError, btnClip, toolStripSeparator6, btnTxtSearchOpen });
 			tsSearch.Location = new Point(0, 50);
 			tsSearch.Name = "tsSearch";
-			tsSearch.Size = new Size(724, 28);
+			tsSearch.Size = new Size(759, 28);
 			tsSearch.TabIndex = 8;
 			tsSearch.Text = "toolStrip1";
 			// 
@@ -709,7 +736,7 @@ namespace viewer
 			tsSearchTxt.Items.AddRange(new ToolStripItem[] { lblText, cmbTextWord });
 			tsSearchTxt.Location = new Point(0, 78);
 			tsSearchTxt.Name = "tsSearchTxt";
-			tsSearchTxt.Size = new Size(724, 28);
+			tsSearchTxt.Size = new Size(759, 28);
 			tsSearchTxt.TabIndex = 9;
 			tsSearchTxt.Text = "toolStrip1";
 			// 
@@ -728,11 +755,27 @@ namespace viewer
 			cmbTextWord.Size = new Size(150, 25);
 			cmbTextWord.KeyDown +=  cmbSearch_KeyDown ;
 			// 
+			// pbarDgvProc
+			// 
+			pbarDgvProc.Location = new Point(196, 179);
+			pbarDgvProc.Name = "pbarDgvProc";
+			pbarDgvProc.Size = new Size(100, 23);
+			pbarDgvProc.TabIndex = 4;
+			// 
+			// lblDgvProc
+			// 
+			lblDgvProc.AutoSize = true;
+			lblDgvProc.Location = new Point(198, 214);
+			lblDgvProc.Name = "lblDgvProc";
+			lblDgvProc.Size = new Size(38, 15);
+			lblDgvProc.TabIndex = 5;
+			lblDgvProc.Text = "label2";
+			// 
 			// frmDirectoryForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
 			AutoScaleMode = AutoScaleMode.Font;
-			ClientSize = new Size(724, 451);
+			ClientSize = new Size(759, 523);
 			Controls.Add(splitContainer1);
 			Controls.Add(tsSearchTxt);
 			Controls.Add(tsSearch);
@@ -755,11 +798,13 @@ namespace viewer
 			tsAddr.ResumeLayout(false);
 			tsAddr.PerformLayout();
 			splitContainer1.Panel1.ResumeLayout(false);
-			splitContainer1.Panel1.PerformLayout();
 			splitContainer1.Panel2.ResumeLayout(false);
+			splitContainer1.Panel2.PerformLayout();
 			( (System.ComponentModel.ISupportInitialize) splitContainer1 ).EndInit();
 			splitContainer1.ResumeLayout(false);
 			treeViewMenu.ResumeLayout(false);
+			panel1.ResumeLayout(false);
+			panel1.PerformLayout();
 			tsSearch.ResumeLayout(false);
 			tsSearch.PerformLayout();
 			tsSearchTxt.ResumeLayout(false);
@@ -839,5 +884,9 @@ namespace viewer
 		private ToolStripMenuItem OpenExprolerFromTreeMenu;
 		private ToolStripMenuItem SearchWinFromTreeMenu;
 		private ToolStripMenuItem SearchMenuItem;
+		private Panel panel1;
+		private ToolStripStatusLabel lblTool2_Hide;
+		private Label lblDgvProc;
+		private ProgressBar pbarDgvProc;
 	}
 }

@@ -225,7 +225,7 @@ namespace viewer
 			imageList1.Images.SetKeyName(1, "folderClose.png");
 			imageList1.Images.SetKeyName(2, "folder.png");
 			// 
-			// ZipViewer
+			// frmZipViewer
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
 			AutoScaleMode = AutoScaleMode.Font;
@@ -234,7 +234,7 @@ namespace viewer
 			Controls.Add(toolStrip1);
 			Controls.Add(statusStrip1);
 			Icon = (Icon) resources.GetObject("$this.Icon");
-			Name = "ZipViewer";
+			Name = "frmZipViewer";
 			StartPosition = FormStartPosition.CenterParent;
 			Text = "Zip Viewer";
 			FormClosing +=  ZipViewer_FormClosing ;

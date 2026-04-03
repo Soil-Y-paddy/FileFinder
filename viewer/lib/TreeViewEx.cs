@@ -117,16 +117,73 @@ namespace lib
 				TreeNode? node = AddNode(stElement, p_Nodes, p_bLazyOpen);
 
 				node.ForeColor = stElement.ForeColor;
-				progress.Increment();
-				Progress?.Report(progress);
+				progress.Increment(GetLeaf(stElement.FullPath));
+				if ( progress.ProcessedCount % 100 == 0 )
+				{
+					Progress?.Report(progress);
+				}
 			}
-
 			return p_Nodes.Cast<TreeNode>().ToArray();
 
 
 
 		}
 
+
+		/// <summary>
+		/// 指定パスまでツリーを自動展開する
+		/// 例: "D:\Some\Path" → D: → Some → Path を順に展開
+		/// </summary>
+		public async Task ExpandToPathAsync( string targetPath, Func<TreeNode, Task> p_Func )
+		{
+
+			try
+			{
+
+				// "D:\Some\Path" → ["D:", "Some", "Path"]
+				var segments = SplitPath(targetPath);
+
+				if ( segments.Length == 0 )
+				{
+					throw new Exception();
+				}
+
+				// ルートノード（ドライブ）を探す
+				// ルートノードのTextは "D:" などになっている前提
+				var nodes = Nodes.Find(segments[0], false);
+				if ( nodes.Length == 0 )
+				{
+					throw new Exception();
+				}
+				var node = nodes[0];
+
+				// セグメントを順にたどりながら展開
+				for ( var idx = 1; idx < segments.Length; idx++ )
+				{
+					var segment = segments[idx];
+					// 未ロードなら子を読み込む
+					await p_Func(node);
+
+					// 対象セグメントに一致する子ノードを探す
+					nodes = node.Nodes.Find(segment, false);
+					if ( nodes.Length == 0 ) break;
+					var next = nodes[0];
+
+					if ( next == null ) break; // パスが存在しない
+
+					next.EnsureVisible();
+					node = next;
+				}
+
+				// 最終ノードを選択・展開
+				SelectedNode = node;
+				node.Expand();
+			}
+			catch ( Exception ex )
+			{
+			}
+
+		}
 
 		/// <summary>
 		/// フルパスで指定されたツリービューを追加する

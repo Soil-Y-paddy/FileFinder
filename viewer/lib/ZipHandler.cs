@@ -13,7 +13,7 @@ namespace lib
 	/// </summary>
 	public class ArchiveInfo : INotifyPropertyChanged
 	{
-		string imageSearchType = "tif,tiff,jpg,jpeg,png,bmp,gif";
+		string imageSearchType = "tif,tiff,jpg,jpe,jpeg,jfif,png,bmp,dib,rle,gif";
 
 		#region プロパティ
 		/// <summary>

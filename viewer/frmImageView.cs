@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,11 +14,18 @@ namespace viewer
 {
 	public partial class frmImageView : Form
 	{
-
+		#region メンバー
 		private bool _isOnView = false; // 画像を表示している
 		private bool _isInitialized = false; // 初期化後
 		private bool _isWhileZoom = false; // ホイールズーム中
+		#endregion
+		#region プロパティ
 
+		public string FilePath { get; set; }
+		public ZipHandler ZipHandler { get; set; } = null;
+		public DataGridView MainFormDgv { get; set; } = null;
+
+		#endregion
 
 		public frmImageView( )
 		{
@@ -52,6 +60,18 @@ namespace viewer
 
 		}
 
+
+		public static bool FileTypeCheck(string path )
+		{
+			var extensions = ImageCodecInfo.GetImageDecoders()
+	.SelectMany(c => c.FilenameExtension.Split(';'))
+	.Select(ext => ext.Trim('*').ToLowerInvariant())
+	.ToHashSet();
+
+			var ext = Path.GetExtension(filePath)?.ToLowerInvariant();
+
+			bool isSupported = ext != null && extensions.Contains(ext);
+		}
 
 		// ウィンドウでキーが押下されたとき
 		private void ZipViewer_KeyDown( object sender, KeyEventArgs e )
@@ -252,4 +272,12 @@ namespace viewer
 
 
 	}
+
+	public enum ImageRun
+	{
+		StandAlone, // 引数からアクセス
+		FromDirectory, // ディレクトリFormからアクセス
+		FromZip // ZIPフォームからアクセス
+	}
+
 }

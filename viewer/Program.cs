@@ -1,6 +1,7 @@
 ﻿using lib;
 using System.IO;
 using System.Text;
+using System.Drawing.Imaging;
 
 namespace viewer
 {
@@ -10,9 +11,9 @@ namespace viewer
 		///  The main entry point for the application.
 		/// </summary>
 		[STAThread]
-		static void Main( string[] args)
+		static void Main( string[] args )
 		{
-
+			var infos = ImageCodecInfo.GetImageDecoders();
 
 			Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
@@ -20,6 +21,18 @@ namespace viewer
 			// see https://aka.ms/applicationconfiguration.
 			ApplicationConfiguration.Initialize();
 			ArgCheck(args);
+		}
+
+		static bool TypeCheck(string filePath , string typePatteern )
+		{
+			foreach ( var type in typePatteern.Split(';') )
+			{
+				if ( filePath.EndsWith(type, StringComparison.CurrentCultureIgnoreCase) )
+				{
+					return true;
+				}
+			}
+			return false;
 		}
 
 		// ZIPViewerを新たに開く

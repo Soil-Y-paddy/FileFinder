@@ -59,6 +59,10 @@ namespace FileFinder
 			this.searching = new System.Windows.Forms.ToolStripStatusLabel();
 			this.btnClip = new System.Windows.Forms.ToolStripSplitButton();
 			this.btnExit = new System.Windows.Forms.ToolStripSplitButton();
+			this.progressBar1 = new System.Windows.Forms.ProgressBar();
+			this.progressBar2 = new System.Windows.Forms.ProgressBar();
+			this.label01 = new System.Windows.Forms.Label();
+			this.label02 = new System.Windows.Forms.Label();
 			((System.ComponentModel.ISupportInitialize)(this.dgvResult)).BeginInit();
 			this.listMenu.SuspendLayout();
 			this.pnl.SuspendLayout();
@@ -142,11 +146,10 @@ namespace FileFinder
 			// 
 			// dgvResult
 			// 
-			this.dgvResult.Dock = System.Windows.Forms.DockStyle.Fill;
-			this.dgvResult.Location = new System.Drawing.Point(0, 0);
+			this.dgvResult.Location = new System.Drawing.Point(0, 258);
 			this.dgvResult.Name = "dgvResult";
 			this.dgvResult.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-			this.dgvResult.Size = new System.Drawing.Size(390, 323);
+			this.dgvResult.Size = new System.Drawing.Size(390, 65);
 			this.dgvResult.TabIndex = 12;
 			this.dgvResult.VirtualMode = true;
 			this.dgvResult.CellMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.dgvResult_MouseClick);
@@ -175,33 +178,33 @@ namespace FileFinder
             this.MnuOpenFolder,
             this.MnuFileProperty});
 			this.listMenu.Name = "contextMenuStrip2";
-			this.listMenu.Size = new System.Drawing.Size(181, 114);
+			this.listMenu.Size = new System.Drawing.Size(129, 92);
 			// 
 			// MnuPathCopy
 			// 
 			this.MnuPathCopy.Name = "MnuPathCopy";
-			this.MnuPathCopy.Size = new System.Drawing.Size(180, 22);
+			this.MnuPathCopy.Size = new System.Drawing.Size(128, 22);
 			this.MnuPathCopy.Text = "パスのコピー";
 			this.MnuPathCopy.Click += new System.EventHandler(this.MnuPathCopy_Click);
 			// 
 			// MnuOpenFile
 			// 
 			this.MnuOpenFile.Name = "MnuOpenFile";
-			this.MnuOpenFile.Size = new System.Drawing.Size(180, 22);
+			this.MnuOpenFile.Size = new System.Drawing.Size(128, 22);
 			this.MnuOpenFile.Text = "開く";
 			this.MnuOpenFile.Click += new System.EventHandler(this.MnuOpenFile_Click);
 			// 
 			// MnuOpenFolder
 			// 
 			this.MnuOpenFolder.Name = "MnuOpenFolder";
-			this.MnuOpenFolder.Size = new System.Drawing.Size(180, 22);
+			this.MnuOpenFolder.Size = new System.Drawing.Size(128, 22);
 			this.MnuOpenFolder.Text = "場所を開く";
 			this.MnuOpenFolder.Click += new System.EventHandler(this.MnuOpenFolder_Click);
 			// 
 			// MnuFileProperty
 			// 
 			this.MnuFileProperty.Name = "MnuFileProperty";
-			this.MnuFileProperty.Size = new System.Drawing.Size(180, 22);
+			this.MnuFileProperty.Size = new System.Drawing.Size(128, 22);
 			this.MnuFileProperty.Text = "プロパティ";
 			this.MnuFileProperty.Click += new System.EventHandler(this.MnuFileProperty_Click);
 			// 
@@ -333,6 +336,10 @@ namespace FileFinder
 			// 
 			// splitContainer1.Panel2
 			// 
+			this.splitContainer1.Panel2.Controls.Add(this.label02);
+			this.splitContainer1.Panel2.Controls.Add(this.label01);
+			this.splitContainer1.Panel2.Controls.Add(this.progressBar2);
+			this.splitContainer1.Panel2.Controls.Add(this.progressBar1);
 			this.splitContainer1.Panel2.Controls.Add(this.dgvResult);
 			this.splitContainer1.Size = new System.Drawing.Size(715, 323);
 			this.splitContainer1.SplitterDistance = 322;
@@ -431,6 +438,38 @@ namespace FileFinder
 			this.btnExit.Text = "終了";
 			this.btnExit.Click += new System.EventHandler(this.BtnExit_Click);
 			// 
+			// progressBar1
+			// 
+			this.progressBar1.Location = new System.Drawing.Point(108, 42);
+			this.progressBar1.Name = "progressBar1";
+			this.progressBar1.Size = new System.Drawing.Size(100, 23);
+			this.progressBar1.TabIndex = 13;
+			// 
+			// progressBar2
+			// 
+			this.progressBar2.Location = new System.Drawing.Point(108, 72);
+			this.progressBar2.Name = "progressBar2";
+			this.progressBar2.Size = new System.Drawing.Size(100, 23);
+			this.progressBar2.TabIndex = 14;
+			// 
+			// label01
+			// 
+			this.label01.AutoSize = true;
+			this.label01.Location = new System.Drawing.Point(229, 52);
+			this.label01.Name = "label01";
+			this.label01.Size = new System.Drawing.Size(35, 12);
+			this.label01.TabIndex = 15;
+			this.label01.Text = "label4";
+			// 
+			// label02
+			// 
+			this.label02.AutoSize = true;
+			this.label02.Location = new System.Drawing.Point(231, 82);
+			this.label02.Name = "label02";
+			this.label02.Size = new System.Drawing.Size(35, 12);
+			this.label02.TabIndex = 16;
+			this.label02.Text = "label5";
+			// 
 			// MainForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -455,6 +494,7 @@ namespace FileFinder
 			this.splitContainer1.Panel1.ResumeLayout(false);
 			this.splitContainer1.Panel1.PerformLayout();
 			this.splitContainer1.Panel2.ResumeLayout(false);
+			this.splitContainer1.Panel2.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
 			this.splitContainer1.ResumeLayout(false);
 			this.statusStrip1.ResumeLayout(false);
@@ -497,6 +537,10 @@ namespace FileFinder
 		private ToolStripStatusLabel searching;
 		private ToolStripSplitButton btnClip;
 		private ToolStripSplitButton btnExit;
+		private ProgressBar progressBar2;
+		private ProgressBar progressBar1;
+		private Label label02;
+		private Label label01;
 	}
 }
 

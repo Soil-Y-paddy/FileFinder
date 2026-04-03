@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Xml;
 
 namespace viewer
@@ -112,10 +113,7 @@ namespace viewer
 			// 検索モードではない場合はフォルダ情報を開く
 			if ( !btnSearchOpen.Checked )
 			{
-				// ツリービューにドライブを追加
-				trvMain.AddNodeRange(await GetDirectoryElement("/"), trvMain.Nodes, true);
-
-				await ViewDirectory(txtAddress.Text, normaly_load);
+				await ViewDirectory(txtAddress.Text, normaly_load, true);
 			}
 			_loadingForm = false;
 
@@ -310,11 +308,55 @@ namespace viewer
 			}
 		}
 
-		// treeViewが展開されたとき
+		// TreeViewの[+]が押されたとき、子を展開する
 		private async void trvMain_BeforeExpand( object sender, TreeViewCancelEventArgs e )
 		{
 			await EnsureNodeLoadedAsync(e.Node!);
 		}
+
+		// TreeViewのノードをクリックしたとき
+		private async void trvMain_AfterSelect( object sender, TreeViewEventArgs e )
+		{
+			TreeNode selNode = trvMain.SelectedNode;
+
+
+			if ( _AfterExpand )
+			{
+				return;
+			}
+			// 検索結果
+			if ( btnSearchOpen.Checked )
+			{
+
+				// リストから選択された場合、リストの更新をしない。
+				//if ( m_selFromList )
+				//	return;
+
+				var strPath = GetTreeViewPath(selNode, true);
+				var list = await Task.Run(() => CreateDataViewList(strPath));
+
+				// DataGridViewとlabelの更新
+				SetDataToDgv(list);
+				var strLabel = $"全{m_objFS.FileCount:N0}件";
+				if ( strPath != "" )
+				{
+					strLabel = $"検索フォルダ内:{list.Count:N0}/{{m_objFS.FileCount:N0}}件";
+				}
+
+				lblTool1.Text = strLabel;
+				lblTool2.Text = "フォルダ:" + strPath;
+				this.Refresh();
+
+				return;
+
+			}
+
+
+			await ViewDirectory(selNode.FullPath, true);
+
+		}
+
+
 
 		#region ボタン処理
 
@@ -501,13 +543,7 @@ namespace viewer
 		/// <param name="e"></param>
 		private async void btnMove_Click( object sender, EventArgs e )
 		{
-			// ツリーを初期化する
-			trvMain.Nodes.Clear();
-			// ツリービューにドライブを追加
-			trvMain.AddNodeRange(await GetDirectoryElement("/"), trvMain.Nodes, true);
-
-
-			await ViewDirectory(txtAddress.Text);
+			await ViewDirectory(txtAddress.Text,true, true);
 		}
 
 		/// <summary>
@@ -578,73 +614,35 @@ namespace viewer
 
 		#endregion
 
-		#region　メニューウィンドウの制御
+		#region　DataGridViewの右クリックメニューの制御
 
-		// (フォルダを)このウィンドウで開くメニュー
-		private async void OpenWinToolStripMenuItem_Click( object sender, EventArgs e )
+		// DataGridViewの右クリック処理
+		private void dgvMain_MouseClick( object sender, MouseEventArgs e )
 		{
-			var item = dgvMain.GetSelectedItems<FileViewItem>()[0];
 
-			if ( item.IsDirectory )
+			if ( e.Button == MouseButtons.Right )
 			{
-				await ViewDirectory(item.FullPath);
+				// 複数個既に選択されている
+				if ( dgvMain.SelectedRows.Count > 1 )
+				{
+					dirMenuStrip.Show(MousePosition);
+				}
+				else
+				{
+					// 選択行を決める
+					var hit = dgvMain.HitTest(e.X, e.Y);
+					if ( hit.RowIndex >= 0 )
+					{
+						dgvMain.ClearSelection();
+						dgvMain.Rows[hit.RowIndex].Selected = true;
+						dirMenuStrip.Show(MousePosition);
+					}
+				}
 			}
 		}
-		// (フォルダを)新しいウィンドウで開くメニュー
-		private void NewWinToolStripMenuItem_Click( object sender, EventArgs e )
-		{
-			if ( dgvMain.SelectedRows.Count < 1 )
-			{
-				return;
-			}
-			var item = dgvMain.GetSelectedItems<FileViewItem>()[0];
-			if ( item.IsDirectory )
-			{
-				Program.OpenDirForm(item.FullPath);
-			}
-		}
 
-		// 切取りメニュー
-		private void CutToolStripMenuItem_Click( object sender, EventArgs e )
-		{
-			btnCut_Click(sender, e);
-		}
-		// コピーメニュー
-		private void CopyToolStripMenuItem_Click( object sender, EventArgs e )
-		{
-			btnCopy_Click(sender, e);
-		}
-		// 削除メニュー
-		private void DeleteToolStripMenuItem_Click( object sender, EventArgs e )
-		{
-			btnDel_Click(sender, e);
-		}
-		// 名前の変更メニュー
-		private void RenameToolStripMenuItem_Click( object sender, EventArgs e )
-		{
-			btnRename_Click(sender, e);
-		}
-		// プロパティメニュー
-		private void PropertyToolStripMenuItem_Click( object sender, EventArgs e )
-		{
-			if ( dgvMain.SelectedRows.Count >= 1 )
-			{
-
-				var data = dgvMain.GetSelectedItems<FileViewItem>()[0];
-				string path = data.FullPath;
-				Win32Api.SHObjectProperties(IntPtr.Zero, Win32Api.SHOP_FILEPATH, path, string.Empty);
-			}
-		}
-		// 圧縮メニュー
-		private void ComplessZipToolStripMenuItem_Click( object sender, EventArgs e )
-		{
-			if ( dgvMain.SelectedRows.Count >= 1 )
-			{
-
-				btnCompless_Click(sender, e);
-			}
-		}
-		// メニューストリップを開いたとき
+		// メニューストリップを開いたとき、
+		// オブジェクトの数や種類に応じてメニュー項目の表示を切り替える
 		private void dirMenuStrip_Opening( object sender, CancelEventArgs e )
 		{
 			if ( dgvMain.SelectedRows.Count == 0 )
@@ -690,6 +688,70 @@ namespace viewer
 			}
 
 		}
+
+		// (フォルダを)このウィンドウで開くメニュー
+		private async void OpenWinToolStripMenuItem_Click( object sender, EventArgs e )
+		{
+			var item = dgvMain.GetSelectedItems<FileViewItem>()[0];
+
+			if ( item.IsDirectory )
+			{
+				await ViewDirectory(item.FullPath);
+			}
+		}
+		// (フォルダを)新しいウィンドウで開くメニュー
+		private void NewWinToolStripMenuItem_Click( object sender, EventArgs e )
+		{
+			if ( dgvMain.SelectedRows.Count < 1 )
+			{
+				return;
+			}
+			var item = dgvMain.GetSelectedItems<FileViewItem>()[0];
+			if ( item.IsDirectory )
+			{
+				Program.OpenDirForm(item.FullPath);
+			}
+		}
+		// 切取りメニュー
+		private void CutToolStripMenuItem_Click( object sender, EventArgs e )
+		{
+			btnCut_Click(sender, e);
+		}
+		// コピーメニュー
+		private void CopyToolStripMenuItem_Click( object sender, EventArgs e )
+		{
+			btnCopy_Click(sender, e);
+		}
+		// 削除メニュー
+		private void DeleteToolStripMenuItem_Click( object sender, EventArgs e )
+		{
+			btnDel_Click(sender, e);
+		}
+		// 名前の変更メニュー
+		private void RenameToolStripMenuItem_Click( object sender, EventArgs e )
+		{
+			btnRename_Click(sender, e);
+		}
+		// プロパティメニュー
+		private void PropertyToolStripMenuItem_Click( object sender, EventArgs e )
+		{
+			if ( dgvMain.SelectedRows.Count >= 1 )
+			{
+
+				var data = dgvMain.GetSelectedItems<FileViewItem>()[0];
+				string path = data.FullPath;
+				Win32Api.SHObjectProperties(IntPtr.Zero, Win32Api.SHOP_FILEPATH, path, string.Empty);
+			}
+		}
+		// 圧縮メニュー
+		private void ComplessZipToolStripMenuItem_Click( object sender, EventArgs e )
+		{
+			if ( dgvMain.SelectedRows.Count >= 1 )
+			{
+
+				btnCompless_Click(sender, e);
+			}
+		}
 		// ファイルを開くメニュー
 		private void OpenFileMenuItem1_Click( object sender, EventArgs e )
 		{
@@ -708,7 +770,6 @@ namespace viewer
 				OpenFile(data);
 			}
 		}
-
 		// エクスプローラで場所開く
 		private void OpenExprolerMenuItem_Click( object sender, EventArgs e )
 		{
@@ -719,7 +780,59 @@ namespace viewer
 				Process.Start("explorer.exe", $"/select,\"{data.FullPath}\"");
 			}
 		}
+		// 検索用に新ウィンドウを開く(DataGridView)
+		private void SearchMenuItem_Click( object sender, EventArgs e )
+		{
 
+			if ( dgvMain.SelectedRows.Count >= 1 )
+			{
+
+				var data = dgvMain.GetSelectedItems<FileViewItem>()[0];
+				Program.OpenDirForm(data.FullPath, true);
+			}
+		}
+		#endregion
+
+		#region TreeViewの右クリックメニューの制御
+
+		// TreeViewの右クリック処理
+		private void trvMain_MouseClick( object sender, MouseEventArgs e )
+		{
+			if ( e.Button == MouseButtons.Right )
+			{
+				TreeNode node = trvMain.GetNodeAt(e.X, e.Y);
+				if ( node != null )
+				{
+					trvMain.SelectedNode = node;
+				}
+			}
+		}
+		// ツリーメニューで新しいウィンドウで開く
+		private void NewWinFromTreeMenu_Click( object sender, EventArgs e )
+		{
+			string path = GetTreeViewPath(trvMain.SelectedNode);
+			if ( string.IsNullOrEmpty(path) )
+				path = "/";
+
+			Program.OpenDirForm(path);
+		}
+		// エクスプローラで開くボタン
+		private void OpenExprolerFromTreeMenu_Click( object sender, EventArgs e )
+		{
+			string path = GetTreeViewPath(trvMain.SelectedNode);
+			if ( string.IsNullOrEmpty(path) )
+				path = "shell:MyComputerFolder";
+			Process.Start("explorer.exe", path);
+		}
+		// 検索用に新ウィンドウを開く(TreeView)
+		private void SearchWinFromTreeMenu_Click( object sender, EventArgs e )
+		{
+			string path = GetTreeViewPath(trvMain.SelectedNode);
+			if ( string.IsNullOrEmpty(path) )
+				path = "/";
+
+			Program.OpenDirForm(path, true);
+		}
 
 		#endregion
 
@@ -728,20 +841,19 @@ namespace viewer
 		// 検索ツールストリップの開閉
 		private async void btnSearchOpen_ChkChanged( object sender, EventArgs e )
 		{
+			UpdateSearchToolVisible();
 			if ( btnSearchOpen.Checked )
 			{
-				tsSearch.Visible = true;
 				dgvMain.DataSource = null;
 				trvMain.Nodes.Clear();
-
+				dgvMain.BackgroundColor = tsSearch.BackColor;
 			}
 			else
 			{
-				tsSearch.Visible = false;
+				dgvMain.BackgroundColor = tsMain.BackColor;
 
 				// 元の表示に戻す
-				trvMain.AddNodeRange(await GetDirectoryElement("/"), trvMain.Nodes, true);
-				await ViewDirectory(txtAddress.Text, true);
+				await ViewDirectory(txtAddress.Text, false, true);
 
 			}
 
@@ -761,14 +873,14 @@ namespace viewer
 		// 含まれる文字列検索ツールストリップの開閉
 		private void btnTxtSearchOpen_ChckedChange( object sender, EventArgs e )
 		{
-			if ( btnTxtSearchOpen.Checked )
-			{
-				tsSearchTxt.Visible = true;
-			}
-			else
-			{
-				tsSearchTxt.Visible = false;
-			}
+			UpdateSearchToolVisible();
+		}
+
+		// ツールストリップの開閉制御
+		private void UpdateSearchToolVisible()
+		{
+			tsSearch.Visible = btnSearchOpen.Checked;
+			tsSearchTxt.Visible = btnSearchOpen.Checked && btnTxtSearchOpen.Checked;
 		}
 
 		// 検索ボタン
@@ -820,6 +932,21 @@ namespace viewer
 			}
 		}
 
+		// 検索結果のコピーボタン
+		private void btnClip_Click( object sender, EventArgs e )
+		{
+			handler.SetClipboard(m_objFS.FileResult.ToList(), ProcType.Copy);
+
+		}
+
+		// 検索結果エラーボタン
+		private void btnSearchError_Click( object sender, EventArgs e )
+		{
+			var form = new frmMsg();
+			form.Message = m_objFS.ExceptionMsg;
+			form.Show();
+		}
+
 		#endregion
 
 
@@ -827,11 +954,19 @@ namespace viewer
 
 		#region プライベートメソッド
 
-		#region 主処理
+		#region フォルダ表示主処理
 
 		// フォルダ一覧取得処理
-		private async Task ViewDirectory( string path, bool addHistory = true )
+		private async Task ViewDirectory( string path, bool addHistory = true, bool bResetTree = false )
 		{
+			if ( bResetTree )
+			{
+				trvMain.Nodes.Clear();
+				// ツリービューにドライブを追加
+				trvMain.AddNodeRange(await GetDirectoryElement("/"), trvMain.Nodes, true);
+
+			}
+
 			// 検索窓を開いている場合、一度解除する
 			if ( btnSearchOpen.Checked )
 			{
@@ -847,7 +982,7 @@ namespace viewer
 				path = path + "\\";
 			}
 			var result = await handler.LoadDirectory(path);
-			await handler.DelayUpdateIcon();
+			await Task.Run(() => handler.DelayUpdateIcon());
 			if ( result )
 			{
 				dgvMain.DataSource = handler.Items;
@@ -868,7 +1003,8 @@ namespace viewer
 			progressBar.Visible = false;
 			lblTool1.Text = $"項目数: {handler.Count}";
 
-			await ExpandToPathAsync(path);
+			_AfterExpand = true;
+			await trvMain.ExpandToPathAsync(path, EnsureNodeLoadedAsync);
 			_AfterExpand = false;
 
 		}
@@ -906,8 +1042,6 @@ namespace viewer
 			return lst.ToArray();
 		}
 
-		#endregion
-
 		// ファイルを開く
 		private void OpenFile( FileViewItem item )
 		{
@@ -937,6 +1071,23 @@ namespace viewer
 			Process.Start(startInfo);
 		}
 
+		// ノードが未ロードなら子を読み込む
+		private async Task EnsureNodeLoadedAsync( TreeNode node )
+		{
+			if ( node.Tag is bool loaded && !loaded )
+			{
+				node.Nodes.Clear();
+				var items = await GetDirectoryElement(node.FullPath + "\\");
+				trvMain.AddNodeRange(items, node.Nodes, true);
+				node.Tag = true;
+				node.Expand(); // 展開して子ノードをUIに反映
+			}
+		}
+
+		#endregion
+
+		#region 進捗の表示
+
 		// 進捗状況の更新
 		private void ShowProgress( ProgressCtrl progress )
 		{
@@ -952,166 +1103,25 @@ namespace viewer
 		// 検索用の進捗状況の更新
 		private void ShowProgressSearch( ProgressCtrl progress )
 		{
-			lblTool1.Text = $"Searching... {progress.ProcessedCount}";
-			lblTool2.Text = $" {Former.PathShorten(progress.CurrentFile)}";
-			progressBar.Style = ProgressBarStyle.Marquee;
+			Invoke((Action) ( () =>
+			{
+				lblTool1.Text = $"{progress.StaticMessage} file:{progress.ProcessedCount:N0}";
+				lblTool2.Text = $" {Former.PathShorten(progress.CurrentFile)}";
+				progressBar.Style = ProgressBarStyle.Marquee;
+			} ));
 		}
 
 		// 検索後のツリービュー展開処理の更新
 		private void ShowTreeViewProgress( ProgressCtrl progress )
 		{
-			pbarTreeView.Maximum = progress.TotalFiles;
-			pbarTreeView.Value = progress.ProcessedCount;
-			lblTreeStatus.Text = $"{progress.StaticMessage}: {progress.CurrentFile}";
+			Invoke((Action) ( () =>
+			{
+				pbarTreeView.Maximum = progress.TotalFiles;
+				pbarTreeView.Value = progress.ProcessedCount;
+				lblTreeStatus.Text = $"{progress.StaticMessage}: {progress.CurrentFile} ({progress.ProcessedCount}/{progress.TotalFiles})";
+			} ));
 		}
-
-		/// <summary>
-		/// 指定パスまでツリーを自動展開する
-		/// 例: "D:\Some\Path" → D: → Some → Path を順に展開
-		/// </summary>
-		public async Task ExpandToPathAsync( string targetPath )
-		{
-			_AfterExpand = true;
-
-			try
-			{
-
-				// "D:\Some\Path" → ["D:", "Some", "Path"]
-				var segments = trvMain.SplitPath(targetPath);
-
-				if ( segments.Length == 0 )
-				{
-					throw new Exception();
-				}
-
-				// ルートノード（ドライブ）を探す
-				// ルートノードのTextは "D:" などになっている前提
-				var nodes = trvMain.Nodes.Find(segments[0], false);
-				if ( nodes.Length == 0 )
-				{
-					throw new Exception();
-				}
-				var node = nodes[0];
-
-				// セグメントを順にたどりながら展開
-				for ( var idx = 1; idx < segments.Length; idx++ )
-				{
-					var segment = segments[idx];
-					// 未ロードなら子を読み込む
-					await EnsureNodeLoadedAsync(node);
-
-					// 対象セグメントに一致する子ノードを探す
-					nodes = node.Nodes.Find(segment, false);
-					if ( nodes.Length == 0 ) break;
-					var next = nodes[0];
-
-					if ( next == null ) break; // パスが存在しない
-
-					next.EnsureVisible();
-					node = next;
-				}
-
-				// 最終ノードを選択・展開
-				trvMain.SelectedNode = node;
-				node.Expand();
-			}
-			catch ( Exception ex )
-			{
-			}
-			finally
-			{
-				_AfterExpand = false;
-			}
-
-		}
-
-		/// <summary>
-		/// ノードが未ロードなら子を読み込む
-		/// </summary>
-		private async Task EnsureNodeLoadedAsync( TreeNode node )
-		{
-			if ( node.Tag is bool loaded && !loaded )
-			{
-				node.Nodes.Clear();
-				var items = await GetDirectoryElement(node.FullPath + "\\");
-				trvMain.AddNodeRange(items, node.Nodes, true);
-				node.Tag = true;
-				node.Expand(); // 展開して子ノードをUIに反映
-			}
-		}
-
-		/// <summary>
-		/// 検索モード中、ツリーノードルート\...なので、txtAdreess.Textと置換える。
-		///  ただし、afterSelectは、ルート選択時は、""を返す
-		/// </summary>
-		/// <param name="selNode"></param>
-		/// <returns></returns>
-		private string GetTreeViewPath( TreeNode selNode, bool afterSelect = false )
-		{
-
-			if ( btnSearchOpen.Checked )
-			{
-				string replacStr = txtAddress.Text;
-				if ( replacStr == "/" ) replacStr = "";
-
-				if ( selNode.Text == strROOT.Trim('\\') )
-					return afterSelect ? "" : replacStr;
-
-				return selNode.FullPath.Replace(strROOT, replacStr);
-
-			}
-			return selNode.FullPath;
-		}
-
-		/// <summary>
-		/// ツリービューのフォルダをクリックしたとき
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		private async void trvMain_AfterSelect( object sender, TreeViewEventArgs e )
-		{
-			TreeNode selNode = trvMain.SelectedNode;
-
-
-			if ( _AfterExpand )
-			{
-				return;
-			}
-			// 検索結果
-			if ( btnSearchOpen.Checked )
-			{
-
-				// リストから選択された場合、リストの更新をしない。
-				//if ( m_selFromList )
-				//	return;
-
-				var strPath = GetTreeViewPath(selNode, true);
-				await SetDataToDgv(strPath);
-				lblTool2.Text = "フォルダ:" + strPath;
-				this.Refresh();
-
-				return;
-
-			}
-
-
-			await ViewDirectory(selNode.FullPath, true);
-
-		}
-
-
-
-		private void trvMain_MouseClick( object sender, MouseEventArgs e )
-		{
-			if ( e.Button == MouseButtons.Right )
-			{
-				TreeNode node = trvMain.GetNodeAt(e.X, e.Y);
-				if ( node != null )
-				{
-					trvMain.SelectedNode = node;
-				}
-			}
-		}
+		#endregion
 
 		#region 設定値のR/W
 
@@ -1165,8 +1175,6 @@ namespace viewer
 			_config.TextKeyHistory = cmbTextWord.ResumeData;
 			_config.Save(ConfigFilePath);
 		}
-
-		#endregion
 
 		#endregion
 
@@ -1241,71 +1249,76 @@ namespace viewer
 
 			try
 			{
-				await TreeViewUpdate();
-
 
 				if ( m_objFS.IsCanceled )
 				{
 					strCancelMsg = "検索 [中断]";
 				}
-				await SetDataToDgv("", strCancelMsg);
+
+				var treeViewTask = Task.Run(() => CreateTreeViewList());
+				var gridViewTask = Task.Run(() => CreateDataViewList(""));
+
+				await Task.WhenAll(treeViewTask, gridViewTask);
+				await TreeViewUpdate(treeViewTask.Result);
+				SetDataToDgv(gridViewTask.Result);
+				lblTool1.Text = $"{strCancelMsg} {gridViewTask.Result.Count}件";
+
 
 			}
 			catch ( Exception exp1 )
 			{
 				MessageBox.Show(exp1.Message);
 			}
-			this.Refresh();
+			//this.Refresh();
 
 			_AfterExpand = false;
 			Cursor.Current = Cursors.Default;
 
 		}
 
+		private TreeNodeElements[] CreateTreeViewList()
+		{
+			IProgress<ProgressCtrl> Progress = new Progress<ProgressCtrl>(ShowTreeViewProgress);
+			// ツリービューの表示用リストを生成
+			var pgArg = new ProgressCtrl("リスト生成");
+			pgArg.TotalFiles = m_objFS.FolderResult.Count;
+
+			var pathManager = new ConcurrentBag<TreeNodeElements>(); //PathTreeManager(node);
+			var strRootAddr = txtAddress.Text;
+			Parallel.ForEach(m_objFS.FolderResultPar, objDirInfo =>
+			{
+				// 通常は、パスをstrROOTに置換える、
+				// ドライブルートの場合は、strROOTを付与する
+				string strRefPath = "";
+				if ( strRootAddr != "/" )
+					strRefPath = objDirInfo.strPath.Replace(strRootAddr, strROOT);
+				else
+					strRefPath = strROOT + objDirInfo.strPath;
+
+				var node = new TreeNodeElements(
+						strRefPath, (int) TreeIcon.FolderClose, (int) TreeIcon.FolderOpen,
+						( objDirInfo.bIsSeach ) ? Color.Blue : SystemColors.ControlText
+					);
+				pathManager.Add(node);
+				pgArg.Increment(Path.GetFileName(strRefPath));
+				if ( pgArg.ProcessedCount % 10 == 0 )
+					Progress.Report(pgArg);
+			});
+
+			return pathManager.ToArray();
+		}
 
 		// ツリービューの更新
-		private async Task TreeViewUpdate()
+		private async Task TreeViewUpdate( TreeNodeElements[] pathManager )
 		{
 
 			// ツリービューの表示
 			trvMain.Visible = false;
 			trvMain.SuspendLayout();
 
-			IProgress<ProgressCtrl> Progress = new Progress<ProgressCtrl>(ShowTreeViewProgress);
-			// ツリービューの表示用リストを生成
-			var pathManager = await Task.Run(() =>
-			{
-				var pgArg = new ProgressCtrl("リスト生成");
-				pgArg.TotalFiles = m_objFS.FolderResult.Count;
-
-				var pathManager = new ConcurrentBag<TreeNodeElements>(); //PathTreeManager(node);
-				var strRootAddr = txtAddress.Text;
-				Parallel.ForEach(m_objFS.FolderResultPar, objDirInfo =>
-				{
-					// 通常は、パスをstrROOTに置換える、
-					// ドライブルートの場合は、strROOTを付与する
-					string strRefPath = "";
-					if ( strRootAddr != "/" )
-						strRefPath = objDirInfo.strPath.Replace(strRootAddr, strROOT);
-					else
-						strRefPath = strROOT + objDirInfo.strPath;
-
-					var node = new TreeNodeElements(
-							strRefPath, (int) TreeIcon.FolderClose, (int) TreeIcon.FolderOpen,
-							( objDirInfo.bIsSeach ) ? Color.Blue : SystemColors.ControlText
-						);
-					pathManager.Add(node);
-					pgArg.Increment(Path.GetFileName(strRefPath));
-					if ( pgArg.ProcessedCount % 10 == 0 )
-						Progress.Report(pgArg);
-				});
-				return pathManager;
-			});
-
 			await trvMain.AddNodeRangeAsync(pathManager.ToArray());
 
 			trvMain.ExpandAll();
-
 			trvMain.ResumeLayout();
 			trvMain.Visible = true;
 
@@ -1321,9 +1334,7 @@ namespace viewer
 
 		}
 
-
-		// DataGridViewへの表示
-		private async Task SetDataToDgv( string targetFolder = "", string addMessage = "検索結果:" )
+		private SortableBindingList<FileViewItem> CreateDataViewList( string targetFolder = "" )
 		{
 			SortableBindingList<FileViewItem> lst = null;
 			string strCount = "";
@@ -1331,107 +1342,68 @@ namespace viewer
 			{
 				var reslut = m_objFS.FileResult.Where(x => x.FullPath.IndexOf(targetFolder) == 0).ToList();
 				lst = new SortableBindingList<FileViewItem>(reslut);
-				addMessage = "検索フォルダ内:";
-				strCount = $"{reslut.Count():N0}/{m_objFS.FileCount:N0}";
+				//addMessage = "検索フォルダ内:";
+				//strCount = $"{reslut.Count():N0}/{m_objFS.FileCount:N0}";
 			}
 			else
 			{
 				// 全件表示
 				lst = m_objFS.FileResult;
-				strCount = $"{m_objFS.FileCount:N0}";
+				//strCount = $"{m_objFS.FileCount:N0}";
 			}
 			// アイコンの取得
-			await handler.DelayUpdateIcon(lst);
+			handler.DelayUpdateIcon(lst);
+			return lst;
+		}
 
-			dgvMain.DataSource = lst;
+		// DataGridViewへの表示
+		private void SetDataToDgv( SortableBindingList<FileViewItem> list )
+		{
+			dgvMain.DataSource = list;
 			dgvMain.ApplyColumnAttribute();
-
-
-
-			lblTool1.Text = $"{addMessage} {strCount}件";
-
-
 		}
 
-		// 検索結果のコピーボタン
-		private void btnClip_Click( object sender, EventArgs e )
-		{
-			handler.SetClipboard(m_objFS.FileResult.ToList(), ProcType.Copy);
 
+		/// <summary>
+		/// 検索モード中、ツリーノード[ルート\...]なので、[{txtAdreess.Text}\...]と置換える。
+		///  ただし、afterSelectは、ルート選択時は、""を返す
+		/// </summary>
+		/// <param name="selNode"></param>
+		/// <returns></returns>
+		private string GetTreeViewPath( TreeNode selNode, bool afterSelect = false )
+		{
+
+			if ( btnSearchOpen.Checked )
+			{
+				string replacStr = txtAddress.Text;
+				if ( replacStr == "/" ) replacStr = "";
+
+				if ( selNode.Text == strROOT.Trim('\\') )
+					return afterSelect ? "" : replacStr;
+
+				return selNode.FullPath.Replace(strROOT, replacStr);
+
+			}
+			return selNode.FullPath;
 		}
 
-		// 検索結果エラーボタン
-		private void btnSearchError_Click( object sender, EventArgs e )
+		private void lblTool2_Click( object sender, EventArgs e )
 		{
-			var form = new frmMsg();
-			form.Message = m_objFS.ExceptionMsg;
-			form.Show();
+			if ( lblTool2.Visible )
+			{
+				lblTool2.Visible = false;
+				lblTool2_Hide.Visible = true;
+			}
+			else
+			{
+				lblTool2.Visible = true;
+				lblTool2_Hide.Visible = false;
+
+			}
 		}
 		#endregion
 
-		// ツリーメニューで新しいウィンドウで開く
-		private void NewWinFromTreeMenu_Click( object sender, EventArgs e )
-		{
-			string path = GetTreeViewPath(trvMain.SelectedNode);
-			if ( string.IsNullOrEmpty(path) )
-				path = "/";
-
-			Program.OpenDirForm(path);
-		}
-
-		// 
-		private void OpenExprolerFromTreeMenu_Click( object sender, EventArgs e )
-		{
-			string path = GetTreeViewPath(trvMain.SelectedNode);
-			if ( string.IsNullOrEmpty(path) )
-				path = "shell:MyComputerFolder";
-			Process.Start("explorer.exe", path);
-		}
-
-
-		private void dgvMain_MouseClick( object sender, MouseEventArgs e )
-		{
-
-			if ( e.Button == MouseButtons.Right )
-			{
-				// 複数個既に選択されている
-				if ( dgvMain.SelectedRows.Count > 1 )
-				{
-					dirMenuStrip.Show(MousePosition);
-				}
-				else
-				{
-					// 選択行を決める
-					var hit = dgvMain.HitTest(e.X, e.Y);
-					if ( hit.RowIndex >= 0 )
-					{
-						dgvMain.ClearSelection();
-						dgvMain.Rows[hit.RowIndex].Selected = true;
-						dirMenuStrip.Show(MousePosition);
-					}
-				}
-			}
-		}
-
-		private void SearchWinFromTreeMenu_Click( object sender, EventArgs e )
-		{
-			string path = GetTreeViewPath(trvMain.SelectedNode);
-			if ( string.IsNullOrEmpty(path) )
-				path = "/";
-
-			Program.OpenDirForm(path, true);
-		}
-
-		private void SearchMenuItem_Click( object sender, EventArgs e )
-		{
-
-			if ( dgvMain.SelectedRows.Count >= 1 )
-			{
-
-				var data = dgvMain.GetSelectedItems<FileViewItem>()[0];
-				Program.OpenDirForm(data.FullPath, true);
-			}
-		}
+		#endregion
 	}
 
 	#region ツリービューアイコンのEnum

@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -39,6 +40,10 @@ namespace lib
 			string pszPath, uint dwFileAttributes,
 			ref SHFILEINFO psfi, uint cbSizeFileInfo, uint uFlags );
 
+		[DllImport("user32.dll", SetLastError = true)]
+		static extern bool DestroyIcon( IntPtr hIcon );
+
+
 		// SHGetFileInfo関数で使用するフラグ
 		private const uint SHGFI_ICON = 0x100; // アイコン・リソースの取得
 		public const uint SHGFI_LARGEICON = 0x0; // 大きいアイコン
@@ -60,26 +65,50 @@ namespace lib
 		public static Bitmap GetFileIcon(string filePath, uint imageSize = SHGFI_SMALLICON)
 		{
 			Bitmap retVal = null;
+			IntPtr hIcon = IntPtr.Zero;
 			try
 			{
-				// アプリケーション・アイコンを取得
-				SHFILEINFO shinfo = new SHFILEINFO();
-				IntPtr hSuccess = SHGetFileInfo(filePath, 0, ref shinfo,
-					(uint) Marshal.SizeOf(shinfo), SHGFI_ICON | imageSize);
-				if ( hSuccess != IntPtr.Zero && shinfo.hIcon != IntPtr.Zero )
-				{
-					Icon appIcon = Icon.FromHandle(shinfo.hIcon);
-					if ( appIcon.Width * appIcon.Height > 0 )
+				if ( File.Exists(filePath) || Directory.Exists(filePath) )
+				{/*
+					using(var icon =  Icon.ExtractAssociatedIcon(filePath) )
 					{
-						retVal = appIcon.ToBitmap();
+						return icon?.ToBitmap();
+					}
+					*/
+
+					// アプリケーション・アイコンを取得
+					SHFILEINFO shinfo = new SHFILEINFO();
+					IntPtr hSuccess = SHGetFileInfo(filePath, 0, ref shinfo,
+						(uint) Marshal.SizeOf(shinfo), SHGFI_ICON | imageSize);
+					if ( hSuccess != IntPtr.Zero && shinfo.hIcon != IntPtr.Zero )
+					{
+						hIcon = shinfo.hIcon;
+						using ( Icon appIcon = Icon.FromHandle(shinfo.hIcon) )
+						{
+							using ( Icon clone = (Icon) appIcon.Clone() )
+							{
+								if ( appIcon.Width * appIcon.Height > 0 )
+								{
+									retVal = appIcon.ToBitmap();
+								}
+							}
+						}
 					}
 				}
 			}
 			catch ( Exception ex )
 			{
+				MessageBox.Show( ex.Message );
+			}
+			finally
+			{
+				if(hIcon != IntPtr.Zero )
+				{
+					DestroyIcon(hIcon);
+				}
 			}
 			return retVal;
-			;
+			
 		}
 
 		#endregion

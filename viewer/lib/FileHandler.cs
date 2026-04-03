@@ -256,70 +256,69 @@ namespace lib
 			return retVal;
 		}
 
-		public async Task DelayUpdateIcon( SortableBindingList<FileViewItem> items = null )
+		public void DelayUpdateIcon( SortableBindingList<FileViewItem> items = null )
 		{
 			if(items == null)
 				items = Items;
-			await Task.Run( ( ) =>
+			var progressArg = new ProgressCtrl( "アイコンの取得中" );
+			progressArg.TotalFiles = items.Count;
+
+			// 拡張子毎に検証
+			ConcurrentDictionary<string, string> typeDict = new ConcurrentDictionary<string, string>();
+			Parallel.ForEach(items, item =>
 			{
-				var progressArg = new ProgressCtrl( "アイコンの取得中" );
-				progressArg.TotalFiles = items.Count;
 
-				// 拡張子毎に検証
-				ConcurrentDictionary<string, string> typeDict = new ConcurrentDictionary<string, string>();
-				Parallel.ForEach(items, item =>
+				if ( item != null && !string.IsNullOrEmpty(item.Type) )
 				{
+					if ( !typeDict.ContainsKey(item.Type.ToLower()) )
+						typeDict[item.Type.ToLower()] = item.FullPath;
+				}
+			});
+			progressArg.TotalFiles = typeDict.Count;
+			// 拡張子毎の画像を先読み
+			Parallel.ForEach(typeDict, kv =>
+//			foreach(var kv in typeDict)
+			{
+				if ( !TypeIcon.TryGetValue(kv.Key, out var bitmap) )
+				{
+					bitmap = Win32Api.GetFileIcon(kv.Value);
+					if ( bitmap == null )
+						TypeIcon.TryGetValue(FILE_DEFAULE_NAME, out bitmap);
+					TypeIcon[kv.Key] = bitmap;
+				}
+				progressArg.Increment(kv.Key);
+				if ( progressArg.ProcessedCount % 100 == 0 )
+				{
+					Progress?.Report(progressArg);
+				}
+			}
+			);
+			progressArg.StaticMessage = "アイコンの反映";
+			progressArg.TotalFiles = items.Count;
+			progressArg.Set(0);
+			Progress?.Report(progressArg);
 
-					if ( item != null && !string.IsNullOrEmpty(item.Type) )
-					{
-						if ( !typeDict.ContainsKey(item.Type.ToLower()) )
-							typeDict[item.Type.ToLower()] = item.FullPath;
-					}
-				});
-				progressArg.TotalFiles = typeDict.Count;
-				// 拡張子毎の画像を先読み
-				Parallel.ForEach(typeDict, kv =>
+			Parallel.ForEach(items, item =>
+			{
+				if ( item != null )
 				{
-					if ( !TypeIcon.TryGetValue(kv.Key, out var bitmap) )
-					{
-						bitmap = Win32Api.GetFileIcon(kv.Value);
-						if ( bitmap == null )
-							TypeIcon.TryGetValue(FILE_DEFAULE_NAME, out bitmap);
-						TypeIcon[kv.Key] = bitmap;
-					}
-					progressArg.Increment(kv.Key);
+					SetTypeImage(item);
+					progressArg.Increment(item.Name);
 					if ( progressArg.ProcessedCount % 100 == 100 )
 					{
+
 						Progress?.Report(progressArg);
 					}
-				});
-				progressArg.StaticMessage = "アイコンの反映";
-				progressArg.TotalFiles = items.Count;
-				progressArg.Set(0);
+				}
+			});
+			/*
+			foreach ( var item in items )
+			{
+				SetTypeImage( item );
+				progressArg.Increment( item.Name );
+				item.NotifyUpdated();
 				Progress?.Report(progressArg);
-
-				Parallel.ForEach(items, item =>
-				{
-					if ( item != null )
-					{
-						SetTypeImage(item);
-						progressArg.Increment(item.Name);
-						if ( progressArg.ProcessedCount % 100 == 100 )
-						{
-
-							Progress?.Report(progressArg);
-						}
-					}
-				});
-				/*
-				foreach ( var item in items )
-				{
-					SetTypeImage( item );
-					progressArg.Increment( item.Name );
-					item.NotifyUpdated();
-					Progress?.Report(progressArg);
-				}*/
-			} );
+			}*/
 
 		}
 

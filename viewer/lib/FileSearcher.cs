@@ -132,7 +132,7 @@ namespace lib
 		{
 			m_lstFiles = new ConcurrentBag<FileViewItem>();
 			m_lstDirs = new ConcurrentBag<DirInfo>();
-			var objCtrl = new ProgressCtrl(ProcType.Load);
+			var objCtrl = new ProgressCtrl("Search");
 
 			IsCanceled = false;
 
@@ -219,6 +219,7 @@ namespace lib
 					*/
 					foreach ( var file in files )
 					{
+
 						m_token.ThrowIfCancellationRequested();
 
 						if ( p_objSInfo.EnableTxt )
@@ -243,7 +244,7 @@ namespace lib
 				{
 					// まずZIPファイルを探す
 					var files = Directory.GetFiles(p_strPath, "*.zip");
-
+					
 					if ( files.Length > 0 )
 						found = true;
 					
@@ -324,16 +325,16 @@ namespace lib
 						m_lstDirs.Add(dirInfo);
 				}
 				// サブフォルダを探索する(再帰呼び出し)
+				
 				if ( p_objSInfo.SubDir )
 				{
 					var dirs = Directory.GetDirectories(p_strPath);
-					/*
-					foreach ( var dir in dirs )
-					{
-						m_token.ThrowIfCancellationRequested();
-						Search(dir);
-					}
-					*/
+					
+					//foreach ( var dir in dirs )
+					//{
+					//	m_token.ThrowIfCancellationRequested();
+					//	Search(dir);
+					//}
 					Parallel.ForEach(dirs, dir =>
 					{
 						try
@@ -348,10 +349,11 @@ namespace lib
 					});
 
 				}
-
+			
 				if ( m_nSearchCount % 10 == 0 )
 				{
 					p_pgCtrl.Set(m_lstDirs.Count, p_strPath);
+					p_pgCtrl.StaticMessage = $"Search dir:{m_nSearchCount:N0}";
 					Progress?.Report(p_pgCtrl);
 				}
 

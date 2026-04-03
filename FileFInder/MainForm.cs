@@ -37,6 +37,7 @@ namespace FileFinder
 		public MainForm( ) {
 			InitializeComponent();
 
+
 			// 各メンバーの初期化
 			rdoSearch.Images = imgRadioIco;
 
@@ -61,7 +62,6 @@ namespace FileFinder
 			stat = ProcState.Default;
 
 		}
-
 
 
 
@@ -352,8 +352,33 @@ namespace FileFinder
 		/// </summary>
 		/// <param name="sender"></param>
 		/// <param name="e"></param>
-		private void MainForm_Load(object sender, EventArgs e)
+		private async void MainForm_Load(object sender, EventArgs e)
 		{
+
+			var P1 = new Progress<ProgressCtrl>(( ctrl ) =>
+			{
+				Invoke((Action) ( () =>
+				{
+					progressBar1.Maximum = ctrl.TotalFiles;
+					progressBar1.Value = ctrl.ProcessedCount;
+					label01.Text = $"{ctrl.ProcessedCount}/{ctrl.TotalFiles}";
+				} ));
+			});
+
+			var P2 = new Progress<ProgressCtrl>(( ctrl ) =>
+			{
+				Invoke((Action) ( () =>
+				{
+					progressBar2.Maximum = ctrl.TotalFiles;
+					progressBar2.Value = ctrl.ProcessedCount;
+					label02.Text = $"{ctrl.ProcessedCount}/{ctrl.TotalFiles}";
+				} ));
+			});
+			var t1 = Task.Run(() => ProccessLongTime(1000, P1));
+			var t2 = Task.Run(() => ProccessLongTime(2000, P2));
+			var r = await Task.WhenAll(t1, t2);
+
+
 			// 設定情報を展開する
 			LoadSetting();
 
@@ -362,6 +387,26 @@ namespace FileFinder
 			cmbRoot.Select(cmbRoot.ComboText.Length, 0);
 			cmbKey.Select(0, 0);
 
+		}
+
+
+
+		bool ProccessLongTime( int maxCount, IProgress<ProgressCtrl> p )
+		{
+			ProgressCtrl pc = new ProgressCtrl(ProcType.None);
+			double x = 0;
+			pc.TotalFiles = maxCount;
+			for ( int idx = 0; idx < maxCount; idx++ )
+			{
+				Parallel.For(0, 400000, idx2 =>
+				//				for ( int idx2 = 0; idx2 < 100000; idx2++ )
+				{
+					x += Math.Pow(Math.Cos(1.0 * idx2), Math.Sin(1.0 * idx2 * 2));
+				});
+				pc.Increment();
+				p?.Report(pc);
+			}
+			return true;
 		}
 
 
