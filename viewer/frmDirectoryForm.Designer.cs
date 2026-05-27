@@ -84,6 +84,8 @@ namespace viewer
 			label1 = new Label();
 			lblTreeStatus = new Label();
 			pbarTreeView = new ProgressBar();
+			lblDgvProc = new Label();
+			pbarDgvProc = new ProgressBar();
 			tsSearch = new ToolStrip();
 			lblKeyword = new ToolStripLabel();
 			cmbSearch = new ToolStrpHistoryComoboBox();
@@ -108,6 +110,8 @@ namespace viewer
 			cmbTextWord = new ToolStrpHistoryComoboBox();
 			pbarDgvProc = new ProgressBar();
 			lblDgvProc = new Label();
+			toolStrip1 = new ToolStrip();
+			toolStripButton1 = new ToolStripButton();
 			( (System.ComponentModel.ISupportInitialize) dgvMain ).BeginInit();
 			dirMenuStrip.SuspendLayout();
 			statusStrip1.SuspendLayout();
@@ -121,6 +125,7 @@ namespace viewer
 			panel1.SuspendLayout();
 			tsSearch.SuspendLayout();
 			tsSearchTxt.SuspendLayout();
+			toolStrip1.SuspendLayout();
 			SuspendLayout();
 			// 
 			// dgvMain
@@ -139,6 +144,7 @@ namespace viewer
 			dgvMain.Size = new Size(503, 393);
 			dgvMain.TabIndex = 3;
 			dgvMain.CellDoubleClick +=  dgvMain_CellDoubleClick ;
+			dgvMain.CellFormatting +=  dgvMain_CellFormatting ;
 			dgvMain.SelectionChanged +=  dgvMain_SelectionChanged ;
 			dgvMain.KeyDown +=  dgvMain_KeyDown ;
 			dgvMain.MouseClick +=  dgvMain_MouseClick ;
@@ -571,6 +577,22 @@ namespace viewer
 			pbarTreeView.Size = new Size(166, 19);
 			pbarTreeView.TabIndex = 1;
 			// 
+			// lblDgvProc
+			// 
+			lblDgvProc.AutoSize = true;
+			lblDgvProc.Location = new Point(198, 214);
+			lblDgvProc.Name = "lblDgvProc";
+			lblDgvProc.Size = new Size(38, 15);
+			lblDgvProc.TabIndex = 5;
+			lblDgvProc.Text = "label2";
+			// 
+			// pbarDgvProc
+			// 
+			pbarDgvProc.Location = new Point(196, 179);
+			pbarDgvProc.Name = "pbarDgvProc";
+			pbarDgvProc.Size = new Size(100, 23);
+			pbarDgvProc.TabIndex = 4;
+			// 
 			// tsSearch
 			// 
 			tsSearch.BackColor = Color.FromArgb(  192,   192,   255);
@@ -755,6 +777,15 @@ namespace viewer
 			cmbTextWord.Size = new Size(150, 25);
 			cmbTextWord.KeyDown +=  cmbSearch_KeyDown ;
 			// 
+			// toolStrip1
+			// 
+			toolStrip1.Items.AddRange(new ToolStripItem[] { toolStripButton1 });
+			toolStrip1.Location = new Point(0, 50);
+			toolStrip1.Name = "toolStrip1";
+			toolStrip1.Size = new Size(759, 25);
+			toolStrip1.TabIndex = 4;
+			toolStrip1.Text = "toolStrip1";
+			// 
 			// pbarDgvProc
 			// 
 			pbarDgvProc.Location = new Point(196, 179);
@@ -771,6 +802,16 @@ namespace viewer
 			lblDgvProc.TabIndex = 5;
 			lblDgvProc.Text = "label2";
 			// 
+			// toolStripButton1
+			// 
+			toolStripButton1.DisplayStyle = ToolStripItemDisplayStyle.Image;
+			toolStripButton1.Image = Properties.Resources.cmd;
+			toolStripButton1.ImageTransparentColor = Color.Magenta;
+			toolStripButton1.Name = "toolStripButton1";
+			toolStripButton1.Size = new Size(23, 22);
+			toolStripButton1.Text = "コマンドプロンプトを開く";
+			toolStripButton1.Click +=  toolStripButton1_Click ;
+			// 
 			// frmDirectoryForm
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
@@ -779,6 +820,7 @@ namespace viewer
 			Controls.Add(splitContainer1);
 			Controls.Add(tsSearchTxt);
 			Controls.Add(tsSearch);
+			Controls.Add(toolStrip1);
 			Controls.Add(tsAddr);
 			Controls.Add(tsMain);
 			Controls.Add(statusStrip1);
@@ -809,6 +851,8 @@ namespace viewer
 			tsSearch.PerformLayout();
 			tsSearchTxt.ResumeLayout(false);
 			tsSearchTxt.PerformLayout();
+			toolStrip1.ResumeLayout(false);
+			toolStrip1.PerformLayout();
 			ResumeLayout(false);
 			PerformLayout();
 		}
@@ -888,5 +932,7 @@ namespace viewer
 		private ToolStripStatusLabel lblTool2_Hide;
 		private Label lblDgvProc;
 		private ProgressBar pbarDgvProc;
+		private ToolStrip toolStrip1;
+		private ToolStripButton toolStripButton1;
 	}
 }

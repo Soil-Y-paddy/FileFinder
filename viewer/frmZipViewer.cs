@@ -1,12 +1,14 @@
 ﻿using lib;
 using System.Collections.Generic;
+using System.DirectoryServices.ActiveDirectory;
 using System.Net.NetworkInformation;
 namespace viewer
 {
 	public partial class frmZipViewer : Form
 	{
 
-		enum SeachZip{
+		enum SeachZip
+		{
 			Ready = 0, // 表示なし
 			Enable, //検索可能
 			Serching, // 検索中
@@ -22,15 +24,23 @@ namespace viewer
 		public string ZipFilePath { get; set; } = "";
 
 
-		public frmZipViewer( )
+		public frmZipViewer()
 		{
-			InitializeComponent( );
+			InitializeComponent();
 			KeyPreview = true;
 			dgvZip.RowPostPaint += DataGridViewExtensions.RawHeaderToNum_RowPostPaint!;
 
 		}
 
+		public static bool FileTypeCheck( string filePath )
+		{
+			if ( string.IsNullOrEmpty(filePath) )
+				return false;
 
+			var ext = Path.GetExtension(filePath)?.ToLowerInvariant();
+
+			return ext != null && ".zip" == ext.ToLower();
+		}
 
 		#region イベント
 
@@ -38,27 +48,27 @@ namespace viewer
 		private void ZipViewer_KeyDown( object sender, KeyEventArgs e )
 		{
 
-			var handled = ( ) =>
+			var handled = () =>
 			{
 				e.Handled = true;
 				e.SuppressKeyPress = true;
 			};
 
-			if( e.Control )
+			if ( e.Control )
 			{
-				switch( e.KeyCode )
+				switch ( e.KeyCode )
 				{
 					case Keys.O:
-						handled( );
-						btnOpenZip.PerformClick( );
+						handled();
+						btnOpenZip.PerformClick();
 						break;
 					case Keys.S:
-						handled( );
-						btnSaveFile.PerformClick( );
+						handled();
+						btnSaveFile.PerformClick();
 						break;
 					case Keys.I:
-						handled( );
-						zipPropertyToolStrip.PerformClick( );
+						handled();
+						zipPropertyToolStrip.PerformClick();
 						break;
 					case Keys.A:
 						break;
@@ -73,9 +83,9 @@ namespace viewer
 		{
 
 			treeView1.PathSeparator = "/";
-			if( ZipFilePath != "" )
+			if ( ZipFilePath != "" )
 			{
-				await OpenZipFile( ZipFilePath );
+				await OpenZipFile(ZipFilePath);
 			}
 
 		}
@@ -83,13 +93,13 @@ namespace viewer
 		// Zipを開くボタンを押したとき
 		private async void btnOpenZip_Click( object sender, EventArgs e )
 		{
-			OpenFileDialog ofd = new OpenFileDialog( );
+			OpenFileDialog ofd = new OpenFileDialog();
 			ofd.Filter = "ZipFile(*.zip)|*.zip";
-			if( ofd.ShowDialog( ) == DialogResult.OK )
+			if ( ofd.ShowDialog() == DialogResult.OK )
 			{
 				lblStatus1.Text = $"Opening {ofd.FileName}...";
 
-				await OpenZipFile( ofd.FileName );
+				await OpenZipFile(ofd.FileName);
 			}
 		}
 
@@ -97,19 +107,19 @@ namespace viewer
 		private void ZipViewer_FormClosing( object sender, FormClosingEventArgs e )
 		{
 			_isClosing = true;
-			handler?.Cancel( );
+			handler?.Cancel();
 
-			handler?.Dispose( );
+			handler?.Dispose();
 			handler = null;
 		}
 
 		// DataGridView上でキーが押されたとき
 		private void dgvZip_KeyDown( object sender, KeyEventArgs e )
 		{
-			switch( e.KeyCode )
+			switch ( e.KeyCode )
 			{
 				case Keys.Enter:
-					dgvZip_MouseDoubleClick( sender, null );
+					dgvZip_MouseDoubleClick(sender, null);
 					break;
 			}
 		}
@@ -118,6 +128,15 @@ namespace viewer
 		// DataGridView上でマウスがダブルクリックされたとき
 		private void dgvZip_MouseDoubleClick( object sender, MouseEventArgs e )
 		{
+			var items = dgvZip.GetSelectedItems<ArchiveInfo>();
+			if ( items.Count > 0 )
+			{
+				if ( frmImageView.FileTypeCheck(items[0].Name) )
+				{
+					Program.OpenImageForm(items[0].Name, ZipFilePath);
+				}
+
+			}
 
 		}
 		// DataGridViewの選択が変更されたとき
@@ -131,23 +150,23 @@ namespace viewer
 		// 保存ボタン押下時
 		private async void btnSaveFile_Click( object sender, EventArgs e )
 		{
-			var items = dgvZip.GetSelectedItems<ArchiveInfo>( );
+			var items = dgvZip.GetSelectedItems<ArchiveInfo>();
 			// 一個
-			if( items.Count == 1 )
+			if ( items.Count == 1 )
 			{
 
-				using( var oFileDialog = new SaveFileDialog( )
+				using ( var oFileDialog = new SaveFileDialog()
 				{
 					Title = $"Extract {items[0].Name} as:",
 					FileName = items[0].Name,
-					InitialDirectory = Path.GetDirectoryName( ZipFilePath ),
+					InitialDirectory = Path.GetDirectoryName(ZipFilePath),
 
 				}
 				)
 				{
-					if( oFileDialog.ShowDialog( ) == DialogResult.OK )
+					if ( oFileDialog.ShowDialog() == DialogResult.OK )
 					{
-						handler.ExtractFile( items[0], oFileDialog.FileName );
+						handler.ExtractFile(items[0], oFileDialog.FileName);
 						lblTotal.Text = $"Extract to {oFileDialog.FileName}";
 
 					}
@@ -156,22 +175,22 @@ namespace viewer
 				}
 			}
 			// 複数個
-			else if( items.Count > 1 )
+			else if ( items.Count > 1 )
 			{
-				using( var oDirDialog = new FolderBrowserDialog( )
+				using ( var oDirDialog = new FolderBrowserDialog()
 				{
 					AutoUpgradeEnabled = true,
 					Description = $"Extract {items.Count} items",
 					ShowNewFolderButton = true,
-					SelectedPath = Path.GetDirectoryName( ZipFilePath ?? "" ) ?? "",
+					SelectedPath = Path.GetDirectoryName(ZipFilePath ?? "") ?? "",
 
 				}
 				)
 				{
-					if( oDirDialog.ShowDialog( ) == DialogResult.OK )
+					if ( oDirDialog.ShowDialog() == DialogResult.OK )
 					{
 						pBarStrip.Visible = true;
-						var res = await handler.ExtractFiles( items, oDirDialog!.SelectedPath! );
+						var res = await handler.ExtractFiles(items, oDirDialog!.SelectedPath!);
 						pBarStrip.Visible = false;
 						lblTotal.Text = $"Extract {items.Count} items";
 
@@ -185,11 +204,85 @@ namespace viewer
 		// ZIPのプロパティボタン
 		private void toolStripButton1_Click( object sender, EventArgs e )
 		{
-			Win32Api.SHObjectProperties( IntPtr.Zero, Win32Api.SHOP_FILEPATH, ZipFilePath, string.Empty );
+			Win32Api.SHObjectProperties(IntPtr.Zero, Win32Api.SHOP_FILEPATH, ZipFilePath, string.Empty);
 
 		}
 
+		// TreeView の選択
+		private void treeView1_AfterSelect( object sender, TreeViewEventArgs e )
+		{
+			var s = e.Node.FullPath + "/";
 
+			if ( s == handler.RootName )
+			{
+				ViewAll();
+
+			}
+			else
+			{
+				s = e.Node.FullPath.Replace(handler.RootName, "") + "/";
+				var lst = handler.Archive.Where(a => a.FullName.StartsWith(s) && ( a.Length == 0 || a.FullName.IndexOf('/', s.Length) == -1 ));
+				;
+				dgvZip.DataSource = new SortableBindingList<ArchiveInfo>(lst.ToList());
+				var dta = dgvZip.DataSource as SortableBindingList<ArchiveInfo>;
+				//dgvZip.ApplyColumnAttribute( );
+				lblTotal.Text = $"{lst.Count()} items in {s}";
+
+			}
+
+			ResetSearchRedy();
+		}
+
+		private void toolStripTextBox1_KeyDown( object sender, KeyEventArgs e )
+		{
+			if ( txtSearch.Text.Length > 0 )
+			{
+				btnSearch.Enabled = true;
+				_eSearching = SeachZip.Enable;
+			}
+			else
+			{
+				ViewAll();
+				ResetSearchRedy();
+
+			}
+
+			if ( e.KeyCode == Keys.Enter )
+			{
+				btnSearch.PerformClick();
+			}
+		}
+
+		private async void btnSearch_Click( object sender, EventArgs e )
+		{
+			switch ( _eSearching )
+			{
+				case SeachZip.Enable:
+					_eSearching = SeachZip.Serching;
+					btnSearch.Enabled = false;
+					string s = txtSearch.Text;
+
+					var lst = await Task.Run(() =>
+					{
+						var lst = handler.Archive.Where(a => a.Name.IndexOf(s) != -1).ToList();
+						return lst;
+					});
+
+					dgvZip.DataSource = new SortableBindingList<ArchiveInfo>(lst);
+					lblTotal.Text = $"{lst.Count()} items  in keyword: {s}";
+
+					_eSearching = SeachZip.Searched;
+					btnSearch.Enabled = true;
+					btnSearch.Image = Properties.Resources.zipSearchClose;
+					btnSearch.Checked = true;
+					break;
+				case SeachZip.Searched:
+
+					ViewAll();
+					ResetSearchRedy();
+					break;
+			}
+		}
 		#endregion
 
 		#region プライベートメソッド
@@ -200,55 +293,55 @@ namespace viewer
 			try
 			{
 				_isOpening = true;
-				if( handler != null )
+				if ( handler != null )
 				{
-					handler?.Dispose( );
+					handler?.Dispose();
 				}
 
-				handler = ZipHandler.Load( fileName, true );
-				handler.Progress = new Progress<ProgressCtrl>( UpdateProgress );
+				handler = ZipHandler.Load(fileName, true);
+				handler.Progress = new Progress<ProgressCtrl>(UpdateProgress);
 
 				dgvZip.AutoGenerateColumns = true;
 
 
-				ToggleProgressVisible( true );
-				var resule = await handler.GetFileList( );
-				ToggleProgressVisible( false );
+				ToggleProgressVisible(true);
+				var resule = await handler.GetFileList();
+				ToggleProgressVisible(false);
 
 				dgvZip.DataSource = handler.Archive;
-				dgvZip.ApplyColumnAttribute( );
+				dgvZip.ApplyColumnAttribute();
 
 
 				// 遅延読み込み
-				if( !handler.ReadyImageSize )
+				if ( !handler.ReadyImageSize )
 				{
-					ToggleProgressVisible( true );
+					ToggleProgressVisible(true);
 
-					await handler.DelayImageSizeUpdate( );
-					ToggleProgressVisible( false );
+					await handler.DelayImageSizeUpdate();
+					ToggleProgressVisible(false);
 				}
 
 				ZipFilePath = fileName;
-				lblStatus1.Text = $"Load: {Former.PathShorten( fileName )}";
+				lblStatus1.Text = $"Load: {Former.PathShorten(fileName)}";
 				btnSaveFile.Enabled = true;
 
 				lblTotal.Text = $"{handler.Archive.Count} items";
 				_isOpening = false;
 
 				//TreeViewに表示
-				var treeNodes = new List<TreeNodeElements>( );
-				treeNodes.Add( new TreeNodeElements( handler.RootName, 0, 0, ForeColor ) );
-				foreach( var dirStr in handler.DirectoryList )
+				var treeNodes = new List<TreeNodeElements>();
+				treeNodes.Add(new TreeNodeElements(handler.RootName, 0, 0, ForeColor));
+				foreach ( var dirStr in handler.DirectoryList )
 				{
-					treeNodes.Add( new TreeNodeElements( dirStr, 1, 2, ForeColor ) );
+					treeNodes.Add(new TreeNodeElements(dirStr, 1, 2, ForeColor));
 				}
 
-				await treeView1.AddNodeRangeAsync( treeNodes.ToArray( ) );
+				await treeView1.AddNodeRangeAsync(treeNodes.ToArray());
 
 			}
-			catch( OperationCanceledException )
+			catch ( OperationCanceledException )
 			{ }
-			catch( Exception ex )
+			catch ( Exception ex )
 			{
 				lblStatus1.Text = ex.Message;
 			}
@@ -258,7 +351,7 @@ namespace viewer
 		private void ToggleProgressVisible( bool visible )
 		{
 			pBarStrip.Visible = visible;
-			lblProgress .Visible = visible;
+			lblProgress.Visible = visible;
 		}
 
 		/// <summary>
@@ -267,9 +360,9 @@ namespace viewer
 		/// <param name="progress"></param>
 		private void UpdateProgress( ProgressCtrl progress )
 		{
-			if( _isClosing )
+			if ( _isClosing )
 				return;
-			if( IsDisposed || Disposing )
+			if ( IsDisposed || Disposing )
 				return;
 
 			pBarStrip.Maximum = progress.TotalFiles;
@@ -277,94 +370,15 @@ namespace viewer
 			lblProgress.Text = $"{progress.StaticMessage}..  {progress.ProcessedCount} / {progress.TotalFiles}";
 		}
 
-
-
-		#endregion
-		// TreeView の選択
-		private void treeView1_AfterSelect( object sender, TreeViewEventArgs e )
-		{
-			var s = e.Node.FullPath + "/";
-
-			if( s == handler.RootName )
-			{
-				ViewAll( );
-
-			}
-			else
-			{
-				s = e.Node.FullPath.Replace( handler.RootName, "" ) + "/";
-				var lst = handler.Archive.Where( a => a.FullName.StartsWith( s ) && ( a.Length == 0 || a.FullName.IndexOf( '/', s.Length ) == -1 ) );
-				;
-				dgvZip.DataSource = new SortableBindingList<ArchiveInfo>( lst.ToList( ) );
-				var dta = dgvZip.DataSource as SortableBindingList<ArchiveInfo>;
-				//dgvZip.ApplyColumnAttribute( );
-				lblTotal.Text = $"{lst.Count( )} items in {s}";
-
-			}
-
-			ResetSearchRedy( );
-		}
-
-		private void toolStripTextBox1_KeyDown( object sender, KeyEventArgs e )
-		{
-			if( txtSearch.Text.Length > 0 )
-			{
-				btnSearch.Enabled = true;
-				_eSearching = SeachZip.Enable;
-			}
-			else
-			{
-				ViewAll( );
-				ResetSearchRedy( );
-
-			}
-
-			if( e.KeyCode == Keys.Enter )
-			{
-				btnSearch.PerformClick( );
-			}
-		}
-
-		private async void btnSearch_Click( object sender, EventArgs e )
-		{
-			switch( _eSearching )
-			{
-				case SeachZip.Enable:
-					_eSearching = SeachZip.Serching;
-					btnSearch.Enabled = false;
-					string s = txtSearch.Text;
-
-					var lst = await Task.Run( ( ) =>
-					{
-						var lst=  handler.Archive.Where( a => a.Name.IndexOf( s ) != -1 ).ToList();
-						return lst;
-					} );
-
-					dgvZip.DataSource = new SortableBindingList<ArchiveInfo>( lst );
-					lblTotal.Text = $"{lst.Count( )} items  in keyword: {s}";
-
-					_eSearching = SeachZip.Searched;
-					btnSearch.Enabled = true;
-					btnSearch.Image = Properties.Resources.zipSearchClose;
-					btnSearch.Checked = true;
-					break;
-				case SeachZip.Searched:
-
-					ViewAll( );
-					ResetSearchRedy( );
-					break;
-			}
-		}
-
-		void ViewAll( )
+		void ViewAll()
 		{
 			dgvZip.DataSource = handler.Archive;
-			dgvZip.ApplyColumnAttribute( );
+			dgvZip.ApplyColumnAttribute();
 			lblTotal.Text = $"{handler.Archive.Count} items";
 
 		}
 
-		void ResetSearchRedy( )
+		void ResetSearchRedy()
 		{
 			_eSearching = SeachZip.Ready;
 			btnSearch.Checked = false;
@@ -374,5 +388,16 @@ namespace viewer
 
 		}
 
+		#endregion
+
+
+		private void dgvZip_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
+		{
+			var item = (ArchiveInfo) dgvZip.Rows[e.RowIndex].DataBoundItem;
+			if ( frmImageView.FileTypeCheck(item.Name) )
+			{
+				e.CellStyle.ForeColor = Color.Blue;
+			}
+		}
 	}
 }

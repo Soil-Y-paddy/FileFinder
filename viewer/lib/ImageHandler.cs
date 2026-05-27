@@ -1,9 +1,21 @@
-﻿using System.Drawing.Text;
+﻿using System.Drawing.Imaging;
+using System.Drawing.Text;
 
 namespace lib
 {
-	public class ImageHandler
+	public static class ImageHandler
 	{
+		public static HashSet<string> ExtType { get; private set; }
+		static ImageHandler( )
+		{
+			// SystemDrawingが読み込み可能な拡張子一覧を取得
+			ExtType = ImageCodecInfo.GetImageDecoders( )
+			.SelectMany( c => c.FilenameExtension.Split( ';' ) )
+			.Select( ext => ext.Trim( '*' ).ToLowerInvariant( ) )
+			.Distinct( ).ToHashSet( );
+
+		}
+
 		/// <summary>
 		/// 絵文字を画像化する
 		/// </summary>

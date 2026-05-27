@@ -8,6 +8,8 @@ using System.Text;
 namespace lib
 {
 
+	#region データ構造
+
 	// ファイルの一覧情報
 	public class FileViewItem : IComparable<FileViewItem>, INotifyPropertyChanged
 	{
@@ -124,21 +126,99 @@ namespace lib
 
 	}
 
+	
+	// 検索種類
+	public enum SearchType
+	{
+		FileOnly = 0,
+		FolderOnly = 1,
+		Both = 2,
+		ZipFile = 3
+	}
+
+	// ファイル検索情報
+	public class FileSearchInfo
+	{
+		public string FilePattern { get; set; } // 検索条件
+		public string Root { get; set; } // 検索ルート
+		public SearchType SearchType { get; set; } // 検索範囲
+		public bool SubDir { get; set; } // サブフォルダも探索する
+
+		public bool EnableTxt { get; set; } // ファイルの中身を検索する
+		public string SearchText { get; set; } = "";
+	}
+
+	/// <summary>
+	/// フォルダパスと、検査k対象かどうかを保持する構造体
+	/// </summary>
+	public struct DirInfo : IEquatable<string>, IEquatable<DirInfo>
+	{
+		/// <summary>
+		/// フォルダパス
+		/// </summary>
+		public string Path { get; set; } = "";
+
+		/// <summary>
+		/// 当該フォルダが検索対象の場合true
+		/// </summary>
+		public bool IsSeach { get; set; } = false;
+
+		/// <summary>
+		/// 構造体の生成
+		/// </summary>
+		/// <param name="p_strPath">フォルダパス</param>
+		/// <param name="p_bIsSearch">検索対象の場合true</param>
+		public DirInfo( string p_strPath, bool p_bIsSearch )
+		{
+			Path = p_strPath;
+			IsSeach = p_bIsSearch;
+		}
+
+		/// 文字列と比較
+		public bool Equals( string? other ) => ( (other??"") == Path );
+
+		/// 構造体と比較
+		public bool Equals( DirInfo other ) => ( other.Path == Path );
+
+		public override string ToString( )
+		{
+			return Path;
+		}
+	}
+
+	#endregion
 
 	// ファイル操作クラス
 	public class FileHandler
 	{
+		#region 定数
 		const string DIR_ICON_NAME = "(dir)";
 		const string FILE_DEFAULE_NAME = "(file)";
+		#endregion
+
+		#region メンバー
+		// ファイル一覧
+		private static ConcurrentDictionary<string, Bitmap> TypeIcon = new ConcurrentDictionary<string, Bitmap>( ); // 拡張子画像バッファ
+
+		// 検索 
+		ConcurrentBag<FileViewItem> m_lstFiles = new ConcurrentBag<FileViewItem>( ); // (並列処理対応版)ファイル一覧
+		List<DirInfo> m_lstDirs = new List<DirInfo>( ); // フォルダ一覧
+
+		CancellationTokenSource m_CancellationSource = null;
+		CancellationToken m_token;
+
+		int m_nSearchCount; // Searchメソッドの探索回数
+
+		#endregion
 
 		#region プロパティ
-		public SortableBindingList<FileViewItem> Items { get; private set; } = new SortableBindingList<FileViewItem>();
 
+		// 一覧(検索結果も併用)
+		public SortableBindingList<FileViewItem> Items { get; private set; } = new SortableBindingList<FileViewItem>();
 		public int Count => Items.Count;
 		public string CurrentPath { get; private set; } = "";
-
 		public IProgress<ProgressCtrl>? Progress { get; set; } = null;
-
+		public IProgress<ProgressCtrl>? SearchProgress { get; set; } = null;
 		public string PearentPath
 		{
 			get
@@ -151,15 +231,16 @@ namespace lib
 				return ( p != null ) ? p.FullName : "/";
 			}
 		}
+		
+		// 検索
+		public string ExceptionMsg { get; private set; } = "";
+		public SortableBindingList<DirInfo> FolderResult => new SortableBindingList<DirInfo>( m_lstDirs.ToList( ) );
+		public ConcurrentBag<DirInfo> FolderResultPar => new ConcurrentBag<DirInfo>( m_lstDirs);
+		public bool IsCanceled { get; private set; }
 
 		#endregion
 
-		#region メンバー
-
-		private static ConcurrentDictionary<string, Bitmap> TypeIcon = new ConcurrentDictionary<string, Bitmap>( );
-
-		#endregion
-
+		#region コンストラクタ・一覧取得・アイコン取得
 
 		public FileHandler( )
 		{
@@ -256,16 +337,14 @@ namespace lib
 			return retVal;
 		}
 
-		public void DelayUpdateIcon( SortableBindingList<FileViewItem> items = null )
+		public void DelayUpdateIcon()
 		{
-			if(items == null)
-				items = Items;
 			var progressArg = new ProgressCtrl( "アイコンの取得中" );
-			progressArg.TotalFiles = items.Count;
+			progressArg.TotalFiles = Items.Count;
 
 			// 拡張子毎に検証
 			ConcurrentDictionary<string, string> typeDict = new ConcurrentDictionary<string, string>();
-			Parallel.ForEach(items, item =>
+			Parallel.ForEach(Items, item =>
 			{
 
 				if ( item != null && !string.IsNullOrEmpty(item.Type) )
@@ -294,11 +373,11 @@ namespace lib
 			}
 			);
 			progressArg.StaticMessage = "アイコンの反映";
-			progressArg.TotalFiles = items.Count;
+			progressArg.TotalFiles = Items.Count;
 			progressArg.Set(0);
 			Progress?.Report(progressArg);
 
-			Parallel.ForEach(items, item =>
+			Parallel.ForEach(Items, item =>
 			{
 				if ( item != null )
 				{
@@ -349,6 +428,14 @@ namespace lib
 					TypeIcon.TryGetValue(FILE_DEFAULE_NAME, out bitmap);
 
 				}
+				// exeは常に取得
+				else if ( item.Type.ToLower() == ".exe" )
+				{
+					bitmap = Win32Api.GetFileIcon(item.FullPath, Win32Api.SHGFI_SMALLICON);
+					if ( bitmap == null )
+						TypeIcon.TryGetValue(FILE_DEFAULE_NAME, out bitmap);
+
+				}
 				else if (!TypeIcon.TryGetValue( item.Type.ToLower(), out bitmap ) )
 				{
 					bitmap = Win32Api.GetFileIcon( item.FullPath );
@@ -360,6 +447,9 @@ namespace lib
 			//item.NotifyUpdated();
 		}
 
+		#endregion
+
+		#region ファイル操作
 
 		// ファイルを削除する
 		public async Task<bool> Delete( List<FileViewItem> targetList )
@@ -400,7 +490,6 @@ namespace lib
 			});
 			return retVal;
 		}
-
 
 		// 新しいフォルダを作成
 		public FileViewItem CreateNewDir(string newName)
@@ -650,7 +739,275 @@ namespace lib
 			return files;
 		}
 
+		#endregion
+
+		#region 検索
+
+
+		/// <summary>
+		/// 非同期での検索を開始します。
+		/// </summary>
+		/// <param name="p_strRoot">ルートフォルダ</param>
+		/// <param name="p_strPattern">検索パターン</param>
+		/// <param name="p_eType">検索範囲</param>
+		/// <param name="sub">サブフォルダも検索する</param>
+		/// <returns></returns>
+		public async Task<bool> ExecuteAsync( FileSearchInfo p_objInfo )
+		{
+			m_lstFiles = new ConcurrentBag<FileViewItem>( );
+			m_lstDirs = new List<DirInfo>( );
+			var objCtrl = new ProgressCtrl( "Search" );
+
+			IsCanceled = false;
+
+			if( m_CancellationSource != null )
+			{
+				m_CancellationSource.Cancel( );
+				m_CancellationSource.Dispose( );
+			}
+			m_CancellationSource = new CancellationTokenSource( );
+			m_token = m_CancellationSource.Token;
+
+			ExceptionMsg = "";
+
+
+			if( p_objInfo.Root == "/" )
+			{
+				// ドライブ全体を検索
+				foreach( DriveInfo info in DriveInfo.GetDrives( ) )
+				{
+					if( info.IsReady )
+					{
+						await Task.Run( ( ) => Search( info.Name, p_objInfo, objCtrl ), m_token );
+					}
+				}
+			}
+			else
+			{
+				await Task.Run( ( ) => Search( p_objInfo.Root, p_objInfo, objCtrl ), m_token );
+			}
+
+			m_CancellationSource.Dispose( );
+			m_CancellationSource = null;
+
+			return true;
+		}
+
+		/// <summary>
+		/// 非同期で実行中の検索処理をキャンセルします
+		/// </summary>
+		public void Cancel( )
+		{
+			if( m_CancellationSource != null )
+			{
+				m_CancellationSource.Cancel( );
+			}
+			IsCanceled = true;
+		}
+
+		/// <summary>
+		/// 検索本体
+		/// </summary>
+		/// <param name="p_strPath"></param>
+		private void Search( string p_strPath, FileSearchInfo p_objSInfo, ProgressCtrl p_pgCtrl )
+		{
+			try
+			{
+
+				var dirStack = new Stack<string>(); // フォルダスタック
+
+
+				dirStack.Push( p_strPath );
+
+				do
+				{
+					bool found = false;
+					m_token.ThrowIfCancellationRequested();
+					Interlocked.Increment(ref m_nSearchCount);
+
+					p_strPath = dirStack.Pop();
+					// ファイルを検索する
+					if ( p_objSInfo.SearchType == SearchType.FileOnly
+						|| p_objSInfo.SearchType == SearchType.Both )
+					{
+						var files = Directory.GetFiles(p_strPath, p_objSInfo.FilePattern);
+
+						if ( files.Length > 0 )
+							found = true;
+						/*
+						Parallel.ForEach(files, file =>
+						{
+							try
+							{
+								m_token.ThrowIfCancellationRequested();
+								m_lstFiles.Add(new FileViewItem(file, false));
+							}
+							catch ( Exception ex )
+							{
+								ExceptionMsg += file + ":"+ex.Message + Environment.NewLine;
+							}
+						});
+						*/
+						foreach ( var file in files )
+						{
+
+							m_token.ThrowIfCancellationRequested();
+
+							if ( p_objSInfo.EnableTxt )
+							{
+								var txt = FileTextReader.ReadWithAutoDetect(file);
+								if ( txt.IndexOf(p_objSInfo.SearchText) != -1 )
+								{
+									m_lstFiles.Add(new FileViewItem(file));
+
+								}
+							}
+							else
+							{
+								m_lstFiles.Add(new FileViewItem(file));
+							}
+
+						}
+					}
+
+					// ZIPファイルを検索する
+					if ( p_objSInfo.SearchType == SearchType.ZipFile )
+					{
+						// まずZIPファイルを探す
+						var files = Directory.GetFiles(p_strPath, "*.zip");
+
+						if ( files.Length > 0 )
+							found = true;
+
+
+						Parallel.ForEach(files, file =>
+						{
+							try
+							{
+								// ZIPファイルの中身を検索する
+								var zip = new ZipHandler(file);
+								var task = zip.GetFileList();
+								task.Wait();
+								if ( task.Result )
+								{
+									foreach ( var items in zip.Archive )
+									{
+										if ( items.Name.IndexOf(p_objSInfo.FilePattern) >= 0 )
+										{
+											m_lstFiles.Add(new FileViewItem(file));
+											break;
+
+										}
+									}
+								}
+
+								m_token.ThrowIfCancellationRequested();
+
+							}
+							catch ( Exception ex )
+							{
+								ExceptionMsg += file + ":" + ex.Message + Environment.NewLine;
+							}
+						});
+						/*
+						foreach ( var file in files )
+						{
+							m_token.ThrowIfCancellationRequested();
+							m_lstFiles.Add(new FileViewItem(file));
+
+						}
+						*/
+					}
+
+					// フォルダを検索する
+					if ( p_objSInfo.SearchType == SearchType.FolderOnly || p_objSInfo.SearchType == SearchType.Both )
+					{
+						var dirs = Directory.GetDirectories(p_strPath, p_objSInfo.FilePattern);
+						/*
+						Parallel.ForEach(dirs, dir =>
+						{
+							try
+							{
+								m_token.ThrowIfCancellationRequested();
+								m_lstFiles.Add(new FileViewItem(dir, true));
+								m_lstDirs.Add(new DirInfo(dir, true));
+							}
+							catch ( Exception ex )
+							{
+								ExceptionMsg += dir + ":"+ ex.Message + Environment.NewLine;
+							}
+
+						});
+						*/
+						foreach ( var dir in dirs )
+						{
+							m_token.ThrowIfCancellationRequested();
+							m_lstFiles.Add(new FileViewItem(dir));
+							m_lstDirs.Add(new DirInfo(dir, true));
+
+						}
+					}
+
+					// ファイル検索結果のフォルダを設定
+					if ( found )
+					{
+						var dirInfo = new DirInfo(p_strPath, false);
+						if ( !m_lstDirs.Contains(dirInfo) )
+							m_lstDirs.Add(dirInfo);
+					}
+					// サブフォルダを探索する(再帰呼び出し)
+
+					if ( p_objSInfo.SubDir )
+					{
+						var dirs = Directory.GetDirectories(p_strPath);
+
+						foreach ( var dir in dirs )
+						{
+							m_token.ThrowIfCancellationRequested();
+							dirStack.Push(dir);
+//							Search(dir);
+						}
+						/*
+						Parallel.ForEach(dirs, dir =>
+						{
+							try
+							{
+								m_token.ThrowIfCancellationRequested();
+								dirStack.Push(dir);
+								//Search(dir, p_objSInfo, p_pgCtrl);
+							}
+							catch ( Exception ex )
+							{
+								ExceptionMsg += dir + ":" + ex.Message + Environment.NewLine;
+							}
+						});
+						*/
+
+					}
+
+					if ( m_nSearchCount % 10 == 0 )
+					{
+						p_pgCtrl.Set(m_lstDirs.Count, p_strPath);
+						p_pgCtrl.StaticMessage = $"Search dir:{m_nSearchCount:N0}";
+						SearchProgress?.Report(p_pgCtrl);
+					}
+
+				}while(dirStack.Count > 0);
+
+			}
+			catch( Exception ex )
+			{
+				ExceptionMsg += ex.Message + Environment.NewLine;
+			}
+			Items = new SortableBindingList<FileViewItem>(m_lstFiles.ToList());
+		}
+
+
+		#endregion
+
 	}
+
+	#region ファイルの中身取得クラス
 
 	// ファイルの中身の取得クラス
 	public class FileTextReader
@@ -725,6 +1082,6 @@ namespace lib
 		}
 	}
 
-
+	#endregion
 
 }

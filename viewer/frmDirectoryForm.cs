@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Xml;
 
@@ -19,8 +20,6 @@ namespace viewer
 		#region メンバ
 		private FileHandler handler = new FileHandler();
 		ProcState stat;
-		FileSearcher m_objFS = new FileSearcher();
-		//		private BindingList<FileItemView> _items = new BindingList<FileItemView>();
 		private HistoryBuffer _history = new HistoryBuffer();
 		private ToolStripDBtunRadio _searchType;
 		private Config _config = new Config();
@@ -76,7 +75,7 @@ namespace viewer
 			// FileHandlerの進捗設定
 			handler.Progress = new Progress<ProgressCtrl>(ShowProgress);
 			// ファイル検索クラスの進捗設定
-			m_objFS.Progress = new Progress<ProgressCtrl>(ShowProgressSearch);
+//			m_objFS.Progress = new Progress<ProgressCtrl>(ShowProgressSearch);
 			// ツリービューの進捗設定
 			trvMain.Progress = new Progress<ProgressCtrl>(ShowTreeViewProgress);
 
@@ -255,6 +254,7 @@ namespace viewer
 		private void dgvMain_SelectionChanged( object sender, EventArgs e )
 		{
 			lblTool1.Text = $"{dgvMain.SelectedRows.Count}選択中 / 全{handler.Count}";
+
 			bool hasSelection = dgvMain.SelectedRows.Count > 0;
 
 			btnCopy.Enabled = hasSelection;
@@ -284,6 +284,11 @@ namespace viewer
 				)
 				{
 					Program.OpenZipForm(item.FullPath);
+					return;
+				}
+				else if ( frmImageView.FileTypeCheck(item.FullPath) )
+				{
+					Program.OpenImageForm(item.FullPath);
 					return;
 				}
 				OpenFile(item);
@@ -337,10 +342,10 @@ namespace viewer
 
 				// DataGridViewとlabelの更新
 				SetDataToDgv(list);
-				var strLabel = $"全{m_objFS.FileCount:N0}件";
+				var strLabel = $"全{handler.Count:N0}件";
 				if ( strPath != "" )
 				{
-					strLabel = $"検索フォルダ内:{list.Count:N0}/{{m_objFS.FileCount:N0}}件";
+					strLabel = $"検索フォルダ内:{list.Count:N0}/{handler.Count:N0}件";
 				}
 
 				lblTool1.Text = strLabel;
@@ -926,7 +931,7 @@ namespace viewer
 					btnSearch.Enabled = false;
 					btnSearch.Text = "中止中...";
 
-					m_objFS.Cancel();
+					handler.Cancel();
 					stat = ProcState.Canceling;
 					break;
 			}
@@ -935,7 +940,7 @@ namespace viewer
 		// 検索結果のコピーボタン
 		private void btnClip_Click( object sender, EventArgs e )
 		{
-			handler.SetClipboard(m_objFS.FileResult.ToList(), ProcType.Copy);
+			handler.SetClipboard(handler.Items.ToList(), ProcType.Copy);
 
 		}
 
@@ -943,7 +948,7 @@ namespace viewer
 		private void btnSearchError_Click( object sender, EventArgs e )
 		{
 			var form = new frmMsg();
-			form.Message = m_objFS.ExceptionMsg;
+			form.Message = handler.ExceptionMsg;
 			form.Show();
 		}
 
@@ -1219,7 +1224,7 @@ namespace viewer
 					EnableTxt = btnTxtSearchOpen.Checked,
 					SearchText = cmbTextWord.ComboText,
 				};
-				var result = await m_objFS.ExecuteAsync(searchInfo);
+				var result = await handler.ExecuteAsync(searchInfo);
 
 				imgSearching.Visible = false;
 
@@ -1240,7 +1245,7 @@ namespace viewer
 			string strCancelMsg = "検索結果";
 			imgSearching.Visible = false;
 
-			if ( m_objFS.ExceptionMsg != "" )
+			if ( handler.ExceptionMsg != "" )
 			{
 				btnSearchError.Visible = true;
 
@@ -1250,7 +1255,7 @@ namespace viewer
 			try
 			{
 
-				if ( m_objFS.IsCanceled )
+				if ( handler.IsCanceled )
 				{
 					strCancelMsg = "検索 [中断]";
 				}
@@ -1281,23 +1286,23 @@ namespace viewer
 			IProgress<ProgressCtrl> Progress = new Progress<ProgressCtrl>(ShowTreeViewProgress);
 			// ツリービューの表示用リストを生成
 			var pgArg = new ProgressCtrl("リスト生成");
-			pgArg.TotalFiles = m_objFS.FolderResult.Count;
+			pgArg.TotalFiles = handler.FolderResult.Count;
 
 			var pathManager = new ConcurrentBag<TreeNodeElements>(); //PathTreeManager(node);
 			var strRootAddr = txtAddress.Text;
-			Parallel.ForEach(m_objFS.FolderResultPar, objDirInfo =>
+			Parallel.ForEach(handler.FolderResultPar, objDirInfo =>
 			{
 				// 通常は、パスをstrROOTに置換える、
 				// ドライブルートの場合は、strROOTを付与する
 				string strRefPath = "";
 				if ( strRootAddr != "/" )
-					strRefPath = objDirInfo.strPath.Replace(strRootAddr, strROOT);
+					strRefPath = objDirInfo.Path.Replace(strRootAddr, strROOT);
 				else
-					strRefPath = strROOT + objDirInfo.strPath;
+					strRefPath = strROOT + objDirInfo.Path;
 
 				var node = new TreeNodeElements(
 						strRefPath, (int) TreeIcon.FolderClose, (int) TreeIcon.FolderOpen,
-						( objDirInfo.bIsSeach ) ? Color.Blue : SystemColors.ControlText
+						( objDirInfo.IsSeach ) ? Color.Blue : SystemColors.ControlText
 					);
 				pathManager.Add(node);
 				pgArg.Increment(Path.GetFileName(strRefPath));
@@ -1340,7 +1345,7 @@ namespace viewer
 			string strCount = "";
 			if ( targetFolder != "" )
 			{
-				var reslut = m_objFS.FileResult.Where(x => x.FullPath.IndexOf(targetFolder) == 0).ToList();
+				var reslut = handler.Items.Where(x => x.FullPath.IndexOf(targetFolder) == 0).ToList();
 				lst = new SortableBindingList<FileViewItem>(reslut);
 				//addMessage = "検索フォルダ内:";
 				//strCount = $"{reslut.Count():N0}/{m_objFS.FileCount:N0}";
@@ -1348,11 +1353,11 @@ namespace viewer
 			else
 			{
 				// 全件表示
-				lst = m_objFS.FileResult;
+				lst = handler.Items;
 				//strCount = $"{m_objFS.FileCount:N0}";
 			}
 			// アイコンの取得
-			handler.DelayUpdateIcon(lst);
+			handler.DelayUpdateIcon();
 			return lst;
 		}
 
@@ -1404,6 +1409,29 @@ namespace viewer
 		#endregion
 
 		#endregion
+
+		private void dgvMain_CellFormatting( object sender, DataGridViewCellFormattingEventArgs e )
+		{
+			var item = (FileViewItem) dgvMain.Rows[e.RowIndex].DataBoundItem;
+			if ( frmImageView.FileTypeCheck(item.FullPath) )
+			{
+				e.CellStyle.ForeColor = Color.Blue;
+			}
+			else if ( frmZipViewer.FileTypeCheck(item.FullPath) )
+			{
+				e.CellStyle.ForeColor = Color.Red;
+			}
+		}
+
+		private void toolStripButton1_Click( object sender, EventArgs e )
+		{
+			Process p = new Process();
+			string windir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+			p.StartInfo.FileName = $"{windir}\\system32\\cmd.exe";
+			p.StartInfo.WorkingDirectory = $"{txtAddress.Text}";
+			p.Start();
+
+		}
 	}
 
 	#region ツリービューアイコンのEnum

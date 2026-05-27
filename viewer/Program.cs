@@ -23,16 +23,14 @@ namespace viewer
 			ArgCheck(args);
 		}
 
-		static bool TypeCheck(string filePath , string typePatteern )
+		public static void OpenImageForm(string filename, string zipFile = ""  )
 		{
-			foreach ( var type in typePatteern.Split(';') )
-			{
-				if ( filePath.EndsWith(type, StringComparison.CurrentCultureIgnoreCase) )
-				{
-					return true;
-				}
-			}
-			return false;
+			ImageRun runtype = zipFile!= "" ? ImageRun.FromZip : ImageRun.FromDirectory;
+			new frmImageView {
+				FilePath = filename,
+				RunType = runtype,
+				ZipFilePath = zipFile 
+			}.Show( );
 		}
 
 		// ZIPViewerを新たに開く
@@ -80,11 +78,19 @@ namespace viewer
 			// 値を取得する
 			var value = args
 				.FirstOrDefault(a => !options.Contains(a, StringComparer.OrdinalIgnoreCase))??"";
+			if( frmImageView.FileTypeCheck(value) )
+			{
+				Application.Run( new frmImageView( ) { FilePath = value } );
 
-			if (!string.IsNullOrEmpty(value) && value.EndsWith(".zip") )
+			}
+			else if( frmZipViewer.FileTypeCheck(value) )
+			{
 				Application.Run(new frmZipViewer() { ZipFilePath = value });
+			}
 			else
+			{
 				Application.Run(new frmDirectoryForm() { FolderPath = value, SearchMode=hasSearch });
+			}
 
 		}
 

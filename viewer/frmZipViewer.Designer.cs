@@ -182,6 +182,7 @@ namespace viewer
 			dgvZip.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 			dgvZip.Size = new Size(776, 401);
 			dgvZip.TabIndex = 2;
+			dgvZip.CellFormatting +=  dgvZip_CellFormatting ;
 			dgvZip.SelectionChanged +=  dgvZip_SelectionChanged ;
 			dgvZip.KeyDown +=  dgvZip_KeyDown ;
 			dgvZip.MouseDoubleClick +=  dgvZip_MouseDoubleClick ;

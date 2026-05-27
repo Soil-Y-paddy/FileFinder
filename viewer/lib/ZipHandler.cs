@@ -224,8 +224,6 @@ namespace lib
 
 		Stream? stream = null;
 		ZipArchive? archive = null;
-		List<string> removeEntly = new List<string>(); // 削除候補
-		List<string> addEntly = new List<string>(); // 追加するファイル
 
 		CancellationTokenSource m_CancellationSource = null;
 		CancellationToken m_token;

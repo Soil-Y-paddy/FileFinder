@@ -104,6 +104,7 @@ namespace FileFinder
 
 	}
 
+
 	/// <summary>
 	/// フォルダパスと、検査k対象かどうかを保持する構造体
 	/// </summary>
@@ -113,45 +114,35 @@ namespace FileFinder
 		/// フォルダパス
 		/// </summary>
 		public string strPath;
+
 		/// <summary>
 		/// 当該フォルダが検索対象の場合true
 		/// </summary>
 		public bool bIsSeach;
+
 		/// <summary>
 		/// 構造体の生成
 		/// </summary>
 		/// <param name="p_strPath">フォルダパス</param>
 		/// <param name="p_bIsSearch">検索対象の場合true</param>
-		public DirInfo(string p_strPath, bool p_bIsSearch)
+		public DirInfo( string p_strPath, bool p_bIsSearch )
 		{
 			strPath = p_strPath;
 			bIsSeach = p_bIsSearch;
 		}
 
-		/// <summary>
 		/// 文字列と比較
-		/// </summary>
-		/// <param name="other"></param>
-		/// <returns></returns>
-		public bool Equals(string other)
-		{
-			return (other == strPath);
-		}
-		/// <summary>
+		public bool Equals( string other ) => ( ( other ?? "" ) == strPath );
+
 		/// 構造体と比較
-		/// </summary>
-		/// <param name="other"></param>
-		/// <returns></returns>
-		public bool Equals(DirInfo other)
-		{
-			return (other.strPath == strPath);
-		}
+		public bool Equals( DirInfo other ) => ( other.strPath == strPath );
 
 		public override string ToString()
 		{
 			return strPath;
 		}
 	}
+
 
 	#endregion
 
